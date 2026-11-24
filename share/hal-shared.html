@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101817"><title>HAL chat</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui;background:#101817;color:#e9f1ed}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit;color:inherit;background:#1b2925;border:1px solid #52685d;border-radius:7px;padding:.65rem}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:hover{background:#2c4439}a{color:#9ee4bd}header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #34493d}h1{font-size:1.4rem;margin:0}#sync{font-size:.85rem;color:#b3d9bd}#sync[data-state=error],.error{color:#ffb7ad}#layout{display:grid;grid-template-columns:270px minmax(0,1fr);height:calc(100dvh - 65px)}aside{padding:1rem;border-right:1px solid #34493d;overflow:auto}#new{width:100%;margin-bottom:1rem}#chats{display:flex;flex-direction:column;gap:.4rem}#chats button{text-align:left;overflow-wrap:anywhere;border-color:transparent;background:transparent}#chats button[aria-current=true]{background:#294535;border-color:#6ca181}main{display:flex;flex-direction:column;min-height:0}#context{padding:.8rem 1.5rem;color:#b4cbbd;font-size:.9rem;border-bottom:1px solid #34493d}#scroll{overflow:auto;flex:1;padding:0 1.5rem}#history{max-width:1000px;margin:auto}article{padding:1.1rem 0;border-bottom:1px solid #2a3d32}article small{font-weight:600;color:#9dd3b0}article pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6;margin:.45rem 0 0}article[data-role="tool result"] pre,article[data-role="tool request"] pre{font:.875rem ui-monospace,monospace;background:#14231b;padding:.8rem}details pre{max-height:380px;overflow:auto}#compose{padding:1rem 1.5rem;border-top:1px solid #34493d;display:flex;gap:.6rem;align-items:end}textarea{resize:vertical;min-height:70px;max-height:250px;flex:1;min-width:0}#status{padding:0 1.5rem .8rem;margin:0;min-height:1.6rem}#create{padding:1.2rem;margin:1rem;border:1px solid #52685d;border-radius:8px;background:#17251e}#create label{display:block;margin:.7rem 0}#create input,#create select{display:block;width:100%;margin-top:.3rem}#create .actions{display:flex;gap:.7rem}#empty{color:#afc4b6;padding:2rem}.note{color:#b4cbbd;font-size:.85rem;line-height:1.5}#pending{padding:.6rem 1.5rem;color:#b4dcbc}#refresh{font-size:.8rem;padding:.25rem .6rem}@media(max-width:650px){header{padding:.8rem}#layout{grid-template-columns:1fr;height:auto;min-height:calc(100dvh - 60px)}aside{border-right:0;border-bottom:1px solid #34493d;max-height:220px}#chats{flex-direction:row;overflow:auto}#chats button{min-width:160px;max-width:220px}#new{width:auto;margin-bottom:.5rem}main{min-height:70dvh}#scroll{max-height:65dvh;padding:0 1rem}#compose{padding:1rem}}
+.reply-header{display:flex;align-items:center;justify-content:space-between;gap:.7rem}.copy-reply{display:inline-flex;align-items:center;justify-content:center;padding:.3rem;background:transparent;border-color:transparent;min-width:32px;min-height:32px}.copy-reply svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7}.compose-hint{padding:0 1.5rem .5rem;color:#b4cbbd;font-size:.8rem}
+.toolbar{padding:.5rem 1.5rem;display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}.toolbar select{max-width:350px}#checkout{padding:1rem 1.5rem;border-bottom:1px solid #52685d}#checkout label{display:block;margin:.5rem 0}#checkout input,#checkout select{max-width:100%;width:420px}.approval{padding:1rem;background:#243529;border:1px solid #719b78;border-radius:8px;margin-top:.6rem}.approval button{margin:.5rem .5rem 0 0}
+
+#deleteConversation{border-color:#b96666;color:#ffc5c5}#stopConversation{border-color:#caa45e}#stopConversation:disabled{cursor:default}
+
+.accessGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.3rem .8rem}#create .accessGrid label,.accessGrid label{display:flex;align-items:center;font-size:.9rem}#create .accessGrid input[type=checkbox],.accessGrid input[type=checkbox]{display:inline-block;width:auto;margin:0 .6rem 0 0}#workspaceDialog{width:min(640px,95vw);max-height:90dvh;overflow:auto;background:#17251e;color:inherit;border:1px solid #719b78;border-radius:10px;padding:1.3rem}#workspaceDialog label{display:block;margin:.7rem 0}#workspaceDialog input,#workspaceDialog select{display:block;width:100%;margin-top:.3rem}#workspaceError{color:#ffb7ad}.accessSettings{padding:.6rem 1.5rem;border-bottom:1px solid #34493d}
+
+[hidden]{display:none!important}
+
+.code-block{margin:.8rem 0;border:1px solid #496456;border-radius:8px;overflow:hidden;background:#0c1510}.code-header{display:flex;justify-content:space-between;gap:.7rem;align-items:center;padding:.6rem .8rem;background:#22372b;overflow-wrap:anywhere}.code-actions{display:flex;gap:.4rem;flex-wrap:wrap}.code-actions button{padding:.35rem .6rem;font-size:.85rem}.code-block pre{padding:.8rem;margin:0;font:.875rem ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}.assistant-prose{white-space:pre-wrap}#attachmentArea{padding:.5rem 1.5rem}#attachmentStatus,#messageSize{font-size:.8rem;color:#b4cbbd}.attachment-chip{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;border:1px solid #52685d;padding:.5rem;margin:.3rem 0;border-radius:7px}.attachment-chip button{padding:.2rem .5rem}.attachment-card{border:1px solid #52685d;padding:.7rem;margin:.5rem 0;border-radius:7px;display:flex;flex-direction:column;gap:.4rem}.attachment-card img{max-width:min(100%,600px);max-height:400px;object-fit:contain;align-self:start}.attachment-card small{font-weight:normal}.file-drop{outline:3px dashed #9ee4bd;outline-offset:-4px}
+
+#compactBar{display:none}.review-card{padding:.8rem;border:1px solid #bfa35f;border-radius:8px;background:#2b3120;margin:.4rem 0}.review-card p{white-space:pre-wrap;max-height:7rem;overflow:auto;margin:.5rem 0}.review-actions{display:flex;gap:.5rem;flex-wrap:wrap}.review-card pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font:13px ui-monospace,monospace}#reviewDock{margin:.4rem 1.5rem;max-height:35vh;overflow:auto}#workspaceDialog label.commit-choice{display:flex;align-items:center;gap:.6rem}#workspaceDialog .commit-choice input{width:auto;margin:0}
+body.tablet-layout{font-size:var(--chat-font-size,14px)}body.tablet-layout h1{font-size:1.1rem}body.tablet-layout header{padding:.4rem .7rem}body.tablet-layout #compactBar{display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;position:sticky;top:0;z-index:20;background:#17251e;border-bottom:1px solid #52685d;min-height:42px;flex-wrap:wrap}body.tablet-layout #compactBar button{padding:.35rem .55rem;font-size:calc(var(--chat-font-size,14px) - 1px)}body.tablet-layout #compactBar label{display:flex;align-items:center;gap:.3rem;font-size:calc(var(--chat-font-size,14px) - 1px)}body.tablet-layout #compactBar input{margin:0}body.tablet-layout #layout{grid-template-columns:190px minmax(0,1fr);height:calc(100dvh - 88px)}body.tablet-layout aside{padding:.5rem}body.tablet-layout .toolbar,body.tablet-layout #context,body.tablet-layout .accessSettings{padding:.35rem .7rem;gap:.4rem}body.tablet-layout .toolbar select{max-width:220px}body.tablet-layout button,body.tablet-layout select,body.tablet-layout input{font-size:var(--chat-font-size,14px);padding:.45rem}body.tablet-layout textarea{font-size:var(--chat-font-size,14px);min-height:55px}body.tablet-layout #scroll{padding:0 .8rem;max-height:none}body.tablet-layout article{padding:.7rem 0}body.tablet-layout article pre{font-size:var(--chat-font-size,14px);line-height:1.45}body.tablet-layout .code-block pre,body.tablet-layout article[data-role="tool result"] pre{font-size:calc(var(--chat-font-size,14px) - 1px)}body.tablet-layout #compose{padding:.5rem .7rem}body.tablet-layout #attachmentArea{padding:.25rem .7rem}body.tablet-layout #attachmentStatus{margin:.2rem 0}body.tablet-layout #reviewDock{margin:.3rem .7rem}body.tablet-layout main{min-height:0}body.tablet-layout #status{padding:0 .7rem .3rem}body.tablet-layout .compose-hint{padding:0 .7rem .3rem}
+body.tablet-layout.controls-collapsed header,body.tablet-layout.controls-collapsed aside,body.tablet-layout.controls-collapsed .toolbar,body.tablet-layout.controls-collapsed #context,body.tablet-layout.controls-collapsed #activeAccessSettings,body.tablet-layout.controls-collapsed #checkout{display:none!important}body.tablet-layout.controls-collapsed #layout{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 43px)}
+@media(max-width:650px){body.tablet-layout #layout{grid-template-columns:minmax(0,1fr)}body.tablet-layout aside{max-height:140px}body.tablet-layout #layout{height:calc(100dvh - 88px)}body.tablet-layout.controls-collapsed #layout{height:calc(100dvh - 43px)}}
+#branchDialog{width:min(820px,96vw);max-height:92dvh;overflow:auto;background:#17251e;color:inherit;border:1px solid #719b78;border-radius:10px}#branchDialog label{display:block;margin:.6rem 0}#branchDialog input:not([type=checkbox]),#branchDialog select,#branchDialog textarea{display:block;width:100%;margin-top:.3rem}#branchDialog .branch-check{display:flex;align-items:center;gap:.6rem}#branchMessages{max-height:25vh;overflow:auto}#branchMessages label{display:flex;align-items:start;gap:.5rem;border-bottom:1px solid #34493d;padding:.4rem}#branchError{color:#ffb7ad}.model-badge{font-size:.75rem;font-weight:normal;color:#b4cbbd}.branch-message{font-size:.75rem;padding:.25rem .4rem}.assistant-prose{line-height:1.5}.assistant-prose p{margin:.6rem 0}.assistant-prose h3{font-size:1.05em;margin:.8rem 0 .3rem}.assistant-prose ul,.assistant-prose ol{padding-left:1.5rem}.reply-header{flex-wrap:wrap}
+
+.access-group{min-width:0;margin:0 0 .8rem;padding:.7rem .9rem;border:1px solid #435950;border-radius:6px;display:grid;gap:.5rem}.access-group legend{padding:0 .35rem;font-weight:600}.access-group label{display:block}.access-group textarea{display:block;width:100%;max-width:100%;box-sizing:border-box;margin-top:.35rem}.access-group small{display:block;line-height:1.4;opacity:.8}
+</style></head><body>
+<div id="compactBar"><button id="toggleControls" type="button" aria-expanded="true">Controls</button><label><input id="pinControls" type="checkbox">Pin controls</label><button id="quickStop" type="button" disabled>Stop</button><button id="fontSmaller" type="button" aria-label="Decrease font size">A−</button><button id="fontLarger" type="button" aria-label="Increase font size">A+</button><button id="reviewShortcut" type="button" hidden>Reviews</button></div><header><h1>HAL chat</h1><div><span id="sync" role="status">Connecting to HAL…</span> <button id="desktopFontSmaller" type="button" aria-label="Decrease font size">A−</button><button id="desktopFontLarger" type="button" aria-label="Increase font size">A+</button><button id="refresh" type="button">Refresh</button><button id="preferencesOpen" type="button">Global preferences</button><button id="restoreNotices" type="button">Show cleared notices</button></div></header>
+<div id="layout"><aside><button id="new" type="button">+ New conversation</button><nav id="chats" aria-label="Conversations"></nav><p class="note">Complete conversations are stored on HAL and shared across devices signed in to your HAL account.</p><a href="http://192.0.2.10/">Server status</a> · <a href="/llama/model-control">Model Control</a> · <a href="/activity">HAL activity</a> · <a href="/llama/lab/">OL10.2 hardware lab</a> · <a href="/llama/android/">Android emulator</a></aside>
+<main><form id="create" hidden><h2>New conversation</h2><label>Name (optional)<input id="name" maxlength="200" placeholder="Use the first message to name this chat"></label><label>Answer mode<select id="newRouting"><option value="auto">Auto · choose per message</option><option value="quick">Quick · small model</option><option value="deep">Deep · larger model</option><option value="manual">Manual · selected model</option></select></label><label>GPU affinity <select id="newGpu"><option value="auto">Auto</option><option value="b65">Intel Arc Pro B65</option><option value="r9700">Radeon AI PRO R9700</option></select></label><label>Manual model<select id="model" required></select></label><label>Workspace<select id="workspace"><option value="">General chat</option><option value="pvp-demo">Personal Viewer Profiles · hal/studio-demo</option></select></label><button id="createWorkspaceOpen" type="button">Create workspace…</button><fieldset><legend>Conversation access</legend><div id="createPermissions" class="accessGrid"></div></fieldset><div class="actions"><button id="createButton">Create</button><button type="button" id="cancel">Cancel</button></div></form>
+<div id="context"></div><div class="toolbar"><label>Answer mode <select id="routing" aria-label="Answer mode"><option value="auto">Auto · choose per message</option><option value="quick">Quick · small model</option><option value="deep">Deep · larger model</option><option value="manual">Manual · selected model</option></select></label><label>GPU affinity <select id="activeGpu"><option value="auto">Auto</option><option value="b65">Intel Arc Pro B65</option><option value="r9700">Radeon AI PRO R9700</option></select></label><label>Manual model <select id="activeModel" aria-label="Active model"></select></label><label>Workspace <select id="activeWorkspace" aria-label="Active workspace"><option value="">General chat</option></select></label><button id="downloadTranscript" type="button" disabled>Download transcript</button><button id="branchOpen" type="button">Branch topic…</button><button id="checkoutOpen" type="button">Create workspace…</button><button id="stopConversation" type="button" disabled>Stop</button><button id="deleteConversation" type="button" disabled>Delete conversation</button></div>
+<details id="activeAccessSettings" class="accessSettings"><summary>Conversation access</summary><div id="activePermissions" class="accessGrid"></div><button id="saveAccess" type="button">Save access</button> <button id="resetFailures" type="button">Allow retry after a repair</button><p class="note">Access changes apply to this conversation. Stop an active reply before changing access. The automatic-commit checkbox controls local commits. Git pushes require separate approval. Automatic lab deployment covers updating, activating and testing the selected published code in the lab VM.</p></details><form id="checkout" hidden><h3>New development checkout</h3><label>Gitea repository <select id="repository" required></select></label><label>Start from branch <input id="baseBranch" placeholder="Repository default"></label><label>New development branch <input id="workBranch" placeholder="Generate a hal/ branch automatically"></label><button id="checkoutButton">Check out and select workspace</button> <button id="checkoutCancel" type="button">Cancel</button><p class="note">Creates a separate working copy. No commit or push occurs.</p></form>
+<div id="reviewDock" aria-label="Pending commit reviews" aria-live="polite" hidden></div><div id="scroll"><div id="history"></div></div><div id="pending" role="status"></div>
+<div id="attachmentArea"><div id="attachmentTray"></div><p id="attachmentStatus"></p><span id="messageSize"></span><input id="fileInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,text/*,.py,.js,.ts,.tsx,.jsx,.json,.md,.csv,.log,.sql,.yaml,.yml,.cs,.cpp,.c,.h,.rs,.go,.sh,.ps1"></div><form id="compose"><button id="attachButton" type="button">Attach files</button><textarea maxlength="2000000" id="draft" aria-label="Message" aria-describedby="composeHint" placeholder="Message HAL" required></textarea><button id="send">Send</button></form><div id="composeHint" class="compose-hint">Enter to send · Shift+Enter for a new line</div><div><p id="status" role="alert"></p><button id="dismissStatus" type="button" hidden>Dismiss</button></div></main></div>
+<dialog id="workspaceDialog" aria-labelledby="workspaceTitle">
+<form id="workspaceForm"><h2 id="workspaceTitle">Create coding workspace</h2>
+<label>Source<select id="workspaceSource"><option value="new">New Gitea project</option><option value="existing">Existing Gitea project</option></select></label>
+<div id="newProjectFields"><label>Project name<input id="projectName" maxlength="80" placeholder="my-new-project"></label><p class="note">Creates a private Gitea project initialized with a README. Spaces become hyphens.</p></div>
+<div id="existingProjectFields" hidden><label>Repository<select id="workspaceRepository"></select></label><label>Start from branch<input id="workspaceBase" placeholder="Repository default"></label></div>
+<label>Development branch<input id="workspaceBranch" placeholder="Generate a hal/ branch"></label>
+<label class="commit-choice"><input id="workspaceAutoCommit" type="checkbox" checked>Allow automatic local commits (unchecked: review each commit)</label><p class="note">Pushes still require a separate approval.</p><p class="note">Uses the access checkboxes for this conversation. Changes stay in the workspace until you approve a commit or push.</p>
+<p id="workspaceError" role="alert"></p><div class="actions"><button id="makeWorkspace">Create workspace</button><button type="button" id="workspaceCancel">Cancel</button></div></form></dialog>
+
+<dialog id="preferencesDialog"><h2>Global preferences</h2><p>Tell HAL “Add preference: …”, “Remember that I prefer …”, or “Remove preference: …”. Preferences apply to every conversation and reply.</p><div id="preferencesList"></div><form id="assistantInstructionsForm">
+<label for="assistantInstructions">Assistant instructions for all chats</label>
+<textarea id="assistantInstructions" rows="6" maxlength="8000" placeholder="Describe how you want HAL to respond." style="display:block;width:100%"></textarea>
+<div class="actions"><button id="assistantInstructionsSave" type="submit">Save instructions</button><button id="preferencesClose" type="button">Close</button></div>
+<p id="assistantInstructionsStatus" role="status"></p></form></dialog>
+<dialog id="branchDialog" aria-labelledby="branchTitle"><form id="branchForm">
+<h2 id="branchTitle">Start a focused conversation</h2>
+<label>Branch type<select id="branchKind"><option value="side">Ask a side question</option><option value="topic">Continue this topic in a new chat</option></select></label>
+<label>New conversation name<input id="branchName" maxlength="200" required></label>
+<label id="branchTopicLabel">Current topic<input id="branchTopic" maxlength="2000" placeholder="Which topic should be carried forward?"></label>
+<details id="branchSelection"><summary>Select relevant messages (only checked messages are used)</summary><div id="branchMessages"></div></details>
+<button id="branchSummarize" type="button">Draft topic summary</button>
+<label>Context to carry forward · review and edit<textarea id="branchContext" maxlength="20000" rows="8" placeholder="Only facts this question or topic needs. No other history is copied."></textarea></label>
+<label>Question or next instruction<textarea id="branchQuestion" maxlength="2000000" rows="3"></textarea></label>
+<label class="branch-check"><input id="branchWorkspace" type="checkbox">Use the same workspace (files are shared, not copied)</label>
+<label class="branch-check"><input id="branchAccess" type="checkbox">Copy this conversation’s access permissions; automatic commits remain off</label>
+<p class="note">The new chat gets only the context above. No transcript, tool calls, attachments or approval records are copied. Side questions default to general chat without tool access.</p>
+<p id="branchError" role="alert"></p><button id="branchCreate">Create branch</button> <button id="branchCancel" type="button">Cancel</button>
+</form></dialog>
+<script>
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
+const oldId=location.hash.match(/chat\/([a-z0-9-]+)/)?.[1];
+let current=params.get('chat')||(oldId?'native-'+oldId:''),last=0,active=false,busy=false,refreshing=false,signature='',chats=[],requestSequence=0;
+let pendingSend=null;
+let workspaceInfo=[];
+let visibleMessages=[],modelMetadata={},branchSource="";
+$('dismissStatus').onclick=()=>{$('status').textContent='';$('dismissStatus').hidden=true;};
+if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{$('dismissStatus').hidden=!$('status').textContent;}).observe($('status'),{childList:true,subtree:true,characterData:true});
+let assistantInstructionsRevision='';
+$('preferencesOpen').onclick=async()=>{
+ const status=$('assistantInstructionsStatus');
+ try{
+  const response=await fetch('/llama/preferences',{cache:'no-store'});
+  if(!response.ok)throw Error('Could not load global preferences');
+  const data=await response.json();
+  $('preferencesList').replaceChildren(...data.preferences.map(item=>{
+   const p=document.createElement('p');p.textContent='• '+item.preference;return p;
+  }));
+  $('assistantInstructions').value=data.instructions||'';
+  assistantInstructionsRevision=data.revision||'';
+  status.textContent='';
+  $('preferencesDialog').showModal();
+ }catch(error){messageError(error)}
+};
+$('assistantInstructionsForm').onsubmit=async event=>{
+ event.preventDefault();
+ const button=$('assistantInstructionsSave'),status=$('assistantInstructionsStatus');
+ button.disabled=true;
+ try{
+  const response=await fetch('/llama/preferences',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({instructions:$('assistantInstructions').value,revision:assistantInstructionsRevision})});
+  const result=await response.json();
+  if(!response.ok)throw Error(result.error||'Could not save instructions');
+  assistantInstructionsRevision=result.revision;
+  $('assistantInstructions').value=result.instructions;
+  status.textContent='Saved for all chats.';
+ }catch(error){status.textContent=error.message}
+ finally{button.disabled=false}
+};
+$('downloadTranscript').onclick=()=>{
+ if(!current)return;
+ const link=document.createElement('a');
+ link.href='/llama/transcript?id='+encodeURIComponent(current);
+ document.body.append(link);link.click();link.remove();
+};
+$('preferencesClose').onclick=()=>$('preferencesDialog').close();
+const sync=(message,error=false)=>{$('sync').textContent=message;$('sync').dataset.state=error?'error':'ok'};
+function messageError(error){$('status').textContent=error.message||String(error);$('status').className='error'}
+async function api(data,id=current){
+ const response=await fetch('/llama/shared'+(data?'':'?id='+encodeURIComponent(id)),{method:data?'POST':'GET',credentials:'same-origin',cache:'no-store',...(data?{headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});
+ if(!(response.headers.get('Content-Type')||'').includes('application/json'))throw Error('HAL sign-in is required. Reload this page and sign in.');
+ const result=await response.json();if(!response.ok)throw Error(result.error||'HAL could not save this request');return result;
+}
+let creating=false;
+function creationView(open){
+ creating=open;
+ for(const id of ['scroll','pending','compose','composeHint','status','activeAccessSettings','attachmentArea','reviewDock'])$(id).hidden=open;
+ if(open){$('history').replaceChildren();signature='';$('checkout').hidden=true;$('context').textContent='New conversation';}
+}
+function choose(id){
+ creationView(false);$('create').hidden=true;
+ current=id;last=0;signature='';requestSequence++;pendingSend=null;
+ active=false;renderMessages([]);$('pending').textContent='';$('context').textContent='Loading selected conversation…';
+ history.replaceState(null,'','/llama/'+(id?'?chat='+encodeURIComponent(id):''));
+ $('draft').value=sessionStorage.getItem('hal-draft:'+id)||'';
+ $('status').textContent='';renderAttachmentTray();return refresh(true);
+}
+const copyIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></svg>';
+async function copyReply(text,button,kind='reply'){
+ try{
+  try{if(!navigator.clipboard?.writeText)throw Error('Clipboard API unavailable');await navigator.clipboard.writeText(text)}
+  catch(error){const field=document.createElement('textarea'),focus=document.activeElement;field.value=text;field.readOnly=true;field.style.cssText='position:fixed;left:-10000px;top:0';document.body.append(field);try{field.select();if(!document.execCommand('copy'))throw error}finally{field.remove();focus?.focus()}}
+  button.textContent='✓';button.setAttribute('aria-label','Reply copied');button.title='Copied';
+  setTimeout(()=>{if(kind==='code')button.textContent='Copy code';else button.innerHTML=copyIcon;button.setAttribute('aria-label',kind==='code'?'Copy code':'Copy reply');button.title=kind==='code'?'Copy code':'Copy reply'},1600);
+ }catch(error){button.title='Could not copy';messageError(Error('Could not copy this reply. Select its text and copy manually.'))}
+}
+function splitCodeBlocks(text){
+ const lines=text.match(/[^\n]*\n|[^\n]+$/g)||[],parts=[];let prose='',block=null;
+ for(const line of lines){
+  if(!block){
+   const match=line.match(/^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?\n?$/);
+   if(match){if(prose)parts.push({type:'text',text:prose});prose='';block={type:'code',marker:match[1],info:match[2].trim(),code:'',closed:false};}
+   else prose+=line;
+  }else{
+   const closing=new RegExp('^ {0,3}'+block.marker[0]+'{'+block.marker.length+',}[ \\t]*(?:\\r?\\n)?$');
+   if(closing.test(line)){block.closed=true;parts.push(block);block=null;}else block.code+=line;
+  }
+ }
+ if(block)parts.push(block);if(prose)parts.push({type:'text',text:prose});return parts;
+}
+function codeFilename(info,index){
+ const extensions={python:'py',py:'py',javascript:'js',js:'js',typescript:'ts',ts:'ts',tsx:'tsx',jsx:'jsx',csharp:'cs',cs:'cs',cpp:'cpp',c:'c',go:'go',rust:'rs',rs:'rs',bash:'sh',sh:'sh',powershell:'ps1',ps1:'ps1',json:'json',yaml:'yaml',yml:'yml',html:'html',css:'css',sql:'sql',markdown:'md',md:'md'};
+ const explicit=info.match(/(?:filename|file|title)\s*[:=]\s*(?:"([^"]+)"|'([^']+)'|([^\s]+))/i);
+ let name=explicit?(explicit[1]||explicit[2]||explicit[3]):info.split(/\s+/).find(token=>/\.[a-z0-9]{1,8}$/i.test(token));
+ if(!name)name='code-block-'+index+'.'+(extensions[info.split(/\s+/)[0].toLowerCase()]||'txt');
+ return name.split(/[\\/]/).at(-1).replace(/[\x00-\x1f\x7f<>:"|?*]/g,'_').replace(/^\.+/,'').slice(0,160)||'code.txt';
+}
+function downloadCode(code,name){
+ const url=URL.createObjectURL(new Blob([code],{type:'text/plain;charset=utf-8'}));
+ const link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function renderCodeBody(text,parent){
+ let index=0;
+ for(const part of splitCodeBlocks(text)){
+  if(part.type==='text'){const prose=document.createElement('div');prose.className='assistant-prose';renderProse(part.text,prose);parent.append(prose);continue;}
+  const name=codeFilename(part.info,++index),figure=document.createElement('figure');figure.className='code-block';
+  const header=document.createElement('figcaption');header.className='code-header';
+  const title=document.createElement('span');title.textContent=name+(part.closed?'':' · partial block');
+  const actions=document.createElement('span');actions.className='code-actions';
+  const copy=document.createElement('button');copy.type='button';copy.textContent='Copy code';copy.setAttribute('aria-label','Copy code from '+name);copy.onclick=()=>copyReply(part.code,copy,'code');
+  const download=document.createElement('button');download.type='button';download.textContent='Download file';download.onclick=()=>downloadCode(part.code,name);
+  actions.append(copy,download);header.append(title,actions);
+  const pre=document.createElement('pre'),code=document.createElement('code');code.textContent=part.code;pre.append(code);figure.append(header,pre);parent.append(figure);
+ }
+}
+
+function renderMessages(messages){
+ const scroll=$('scroll'),atEnd=scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight<90;
+ const approved=new Set(messages.filter(m=>m.role==='approval result').map(m=>{try{return JSON.parse(m.body).id}catch{return ''}}));
+ const nodes=messages.map(message=>{
+  const article=document.createElement('article');article.dataset.role=message.role;article.dataset.messageId=message.id;
+  const label=document.createElement('small');label.textContent=message.role==='assistant'?'HAL':message.role==='user'?'You':message.role;
+  const heading=document.createElement('div');heading.className='reply-header';heading.append(label);
+  if((message.role.startsWith('assistant')||message.role==='Codex')&&message.body){const copy=document.createElement('button');copy.type='button';copy.className='copy-reply';copy.title='Copy reply';copy.setAttribute('aria-label','Copy reply');copy.innerHTML=copyIcon;copy.onclick=()=>copyReply(message.body,copy);heading.append(copy)}
+  if(['notice','error','approval result'].includes(message.role))heading.append(dismissNoticeButton('message',message.id));
+  if(message.role==='assistant'&&modelMetadata[message.id]){const meta=modelMetadata[message.id],badge=document.createElement('span');badge.className='model-badge';badge.textContent=meta.model+' · '+meta.seconds+'s'+(/escalat/i.test(meta.reason)?' · escalated':'');badge.title=meta.mode+' · '+meta.reason;heading.append(badge)}
+  if(['user','assistant'].includes(message.role)){const branch=document.createElement('button');branch.type='button';branch.className='branch-message';branch.textContent='Side question';branch.title='Ask a separate question with only this message as initial context';branch.onclick=()=>openBranch('side',message.id);heading.append(branch)}
+  article.append(heading);const pre=document.createElement('pre');pre.textContent=message.body;
+  if(message.role==='error'){
+   let summary='HAL could not finish this response. Your messages and workspace files are saved. Send a follow-up to continue.',technical=message.body;
+   try{const problem=JSON.parse(message.body);if(problem.summary){summary=problem.summary;technical=problem.technical||''}}catch{}
+   if(message.body.includes('TimeoutError')||message.body.includes('timed out'))summary='HAL stopped receiving data from the model server. Your work is saved. Check repository status above before repeating a commit; send “continue” to resume.';
+   const explanation=document.createElement('p');explanation.textContent=summary;
+   const details=document.createElement('details'),label=document.createElement('summary');label.textContent='Technical details';pre.textContent=technical;details.append(label,pre);article.append(explanation,details);
+  }else if(['tool result','tool request','assistant tool call','branch context'].includes(message.role)){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=message.role==='branch context'?'Context carried into this branch':message.role==='tool result'?'Tool result · technical details':message.role==='tool request'?'Tool request':'HAL tool plan';details.append(summary,pre);article.append(details)}else if(message.role==='reasoning'){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Reasoning';details.append(summary,pre);article.append(details)}else if(message.role.startsWith('assistant')||message.role==='Codex')renderCodeBody(message.body,article);else article.append(pre);
+  if(message.attachments?.length)renderMessageAttachments(message.attachments,article);
+  if(message.role==='tool result'){
+   let approval;try{approval=JSON.parse(message.body).result}catch{}
+   if(approval?.approval_id&&!approved.has(approval.approval_id)){
+    const panel=document.createElement('details');panel.className='approval';panel.open=true;const summary=document.createElement('summary');summary.textContent='Review commit: '+approval.message;const patch=document.createElement('pre');patch.textContent=approval.diff;panel.append(summary,patch);
+    for(const push of [false,true]){const button=document.createElement('button');button.type='button';button.textContent=push?'Approve commit & push':'Approve commit only';button.onclick=async()=>{button.disabled=true;try{await api({op:'approve_commit',id:current,approval_id:approval.approval_id,push});$('status').textContent=push?'Approved commit pushed to the development branch.':'Approved commit created locally.'}catch(error){messageError(error)}finally{button.disabled=false;await refresh(true)}};panel.append(button)}
+    article.append(panel);
+   }
+  }
+  return article;
+ });
+ if(!nodes.length){const empty=document.createElement('p');empty.id='empty';empty.textContent=current?'No messages yet. Start this conversation.':'Create a conversation or choose one from the list.';nodes.push(empty)}
+ $('history').replaceChildren(...nodes);if(atEnd||!signature)scroll.scrollTop=scroll.scrollHeight;
+}
+async function refresh(force=false){
+ if(refreshing&&!force)return;refreshing=true;const id=current,sequence=++requestSequence;
+ try{
+  const result=await api(null,id);if(sequence!==requestSequence||id!==current)return;
+  chats=result.chats;
+  if(!creating&&current&&!chats.some(chat=>chat.id===current)){sessionStorage.removeItem('hal-draft:'+current);await choose(chats[0]?.id||'');return;}
+  if(!creating&&!current&&chats.length){await choose(chats[0].id);return}
+  const navSignature=JSON.stringify(chats);
+  if($('chats').dataset.signature!==navSignature){$('chats').replaceChildren(...chats.map(chat=>{const button=document.createElement('button');button.type='button';button.textContent=chat.name;button.dataset.chat=chat.id;button.onclick=()=>choose(chat.id);return button}));$('chats').dataset.signature=navSignature}
+  for(const button of $('chats').children)button.setAttribute('aria-current',String(!creating&&button.dataset.chat===current));
+  const chat=chats.find(c=>c.id===current),monitor=chat&&(chat.id==='native-103c5fea-ea96-5c71-b6c6-cc526d64e4b5'||chat.name.toLowerCase().includes('codex to monitor'));
+  $('context').textContent=creating?'New conversation':chat?chat.name+' · '+(monitor?'Instructions saved for Codex; pickup occurs only while a Codex session is actively checking.':(chat.routing==='manual'?chat.model:(chat.routing||'auto')+' model selection')+(chat.workspace?' · '+chat.workspace:'')):(current?'Conversation not found on HAL. Choose another chat.':'');
+  visibleMessages=result.messages;modelMetadata=result.models_used||{};
+  if(chat&&document.activeElement!==$('routing'))$('routing').value=chat.routing||'auto';
+  const gpu=$('activeGpu');
+  if(chat&&document.activeElement!==gpu)gpu.value=chat.gpu_affinity||'auto';
+  gpu.disabled=creating||busy||active||!chat||fixedModelBackend(chat.model);
+  $('routing').disabled=creating||busy||active||!chat;$('branchOpen').disabled=creating||!chat;$('downloadTranscript').disabled=creating||!chat;
+  if(result.branch&&!creating){const source=document.createElement('button');source.type='button';source.className='branch-message';source.textContent='Source conversation';source.onclick=()=>choose(result.branch.parent);$('context').append(' · ',source)}
+  const next=JSON.stringify([result.messages,modelMetadata]);if(!creating&&next!==signature){renderMessages(result.messages);signature=next}
+  last=result.messages.at(-1)?.seq||0;active=result.turns.some(t=>['queued','running','stopping'].includes(t.state));
+  if(chat&&document.activeElement!==$('activeModel'))$('activeModel').value=chat.model;
+  if(chat&&document.activeElement!==$('activeWorkspace')){$('activeWorkspace').value=chat.workspace;if(chat.workspace&&!workspaceInfo.some(w=>w.id===chat.workspace))loadWorkspaces().catch(messageError)}
+  const stopping=result.turns.some(t=>t.state==='stopping');
+  $('stopConversation').disabled=creating||busy||!active||stopping||!chat;
+  $('stopConversation').textContent=stopping?'Stopping…':'Stop';
+  $('deleteConversation').disabled=creating||busy||active||!chat;
+  $('deleteConversation').title=active?'Stop this conversation before deleting it':'Delete this conversation and its messages; workspace files are kept';
+  updateAccess(chat);
+  $('quickStop').disabled=$('stopConversation').disabled;$('quickStop').textContent=$('stopConversation').textContent;
+  loadReviews().catch(messageError);
+  $('activeModel').disabled=creating||busy||active||!chat||(chat?.routing||'auto')!=='manual';
+  $('activeWorkspace').disabled=creating||busy||active||!chat;$('checkoutOpen').disabled=creating||busy||active||!chat;
+  const progress=result.progress,age=progress?Math.max(0,Math.floor(Date.now()/1000-progress.started)):0;
+  $('pending').textContent=stopping?'Stopping this conversation…':active?(progress?progress.phase+' · '+age+'s'+(progress.characters?' · '+progress.characters.toLocaleString()+' characters generated':''):'HAL is starting…')+' · Stop or send an update at any time.':'';
+  $('send').disabled=busy||!chat;$('send').textContent=active?'Send update':'Send';$('draft').placeholder=monitor?'Leave an instruction for the active Codex session':'Message HAL';
+  renderAttachmentTray();
+  sync('Synced with HAL · '+new Date(result.serverTime*1000).toLocaleTimeString());
+ }catch(error){sync('Not synced — '+error.message,true)}finally{refreshing=false}
+}
+$('draft').oninput=()=>{sessionStorage.setItem('hal-draft:'+current,$('draft').value);if(pendingSend?.body!==$('draft').value)pendingSend=null};
+$('draft').onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&event.keyCode!==229){event.preventDefault();if(!$('send').disabled)$('compose').requestSubmit($('send'))}};
+$('compose').onsubmit=async event=>{
+ event.preventDefault();if(busy||!current||(attachmentUploads.get(current)||0)>0)return;
+ const id=current,body=$('draft').value,attachments=draftAttachments(id).map(item=>item.id);
+ if(!body.trim()&&!attachments.length)return;
+ busy=true;$('send').disabled=true;$('status').textContent='Saving to HAL…';
+ if(!pendingSend||pendingSend.id!==id||pendingSend.body!==body||JSON.stringify(pendingSend.attachments)!==JSON.stringify(attachments))pendingSend={op:'post',id,body,attachments,messageId:crypto.randomUUID(),after:last};
+ const request=pendingSend;
+ try{
+  await api(request);
+  saveAttachments(id,draftAttachments(id).filter(item=>!attachments.includes(item.id)));
+  if(current===id){if($('draft').value===body){$('draft').value='';sessionStorage.removeItem('hal-draft:'+id)}$('status').textContent=active?'Update saved. HAL will read it at the next safe boundary.':'Saved on HAL.';}
+  if(pendingSend===request)pendingSend=null;
+ }catch(error){messageError(error);if(error.message.includes('New messages arrived'))pendingSend=null;}
+ finally{busy=false;await refresh(true);renderAttachmentTray();}
+};
+
+$('new').onclick=()=>{creationView(true);$('create').hidden=false;$('name').focus();refresh(true)};$('cancel').onclick=()=>{$('create').hidden=true;creationView(false);refresh(true)};
+$('create').onsubmit=async event=>{event.preventDefault();$('createButton').disabled=true;try{const result=await api({op:'create',name:$('name').value,model:$('model').value,routing:$('newRouting').value,gpu_affinity:$('newGpu').value,workspace:$('workspace').value,permissions:readAccess('createPermissions')});$('create').hidden=true;$('name').value='';$('newGpu').value='auto';await choose(result.id)}catch(error){messageError(error)}finally{$('createButton').disabled=false}};
+
+$('stopConversation').onclick=async()=>{
+ const id=current;if(!id||!active)return;
+ $('stopConversation').disabled=true;$('stopConversation').textContent='Stopping…';
+ try{await api({op:'stop',id});if(current===id)$('status').textContent='Stop requested. Changes already made to workspace files are kept.'}
+ catch(error){messageError(error)}finally{await refresh(true)}
+};
+$('deleteConversation').onclick=async()=>{
+ const chat=chats.find(chat=>chat.id===current);if(!chat||active||busy)return;
+ if(!confirm('Permanently delete “'+chat.name+'” and its messages from HAL on all devices?\n\nWorkspace and repository files will be kept.'))return;
+ busy=true;$('deleteConversation').disabled=true;
+ try{await api({op:'delete',id:chat.id,name:chat.name,confirmed:true});sessionStorage.removeItem('hal-draft:'+chat.id);sessionStorage.removeItem('hal-attachments:'+chat.id);attachmentDrafts.delete(chat.id);pendingSend=null;busy=false;await choose('')}
+ catch(error){messageError(error)}finally{busy=false;await refresh(true)}
+};
+$('refresh').onclick=()=>refresh(true);
+const fixedModelBackend=name=>name==='littlebit-qwen3:8b-0.55bpw'||name.startsWith('llama.cpp/');
+$('model').onchange=()=>{
+ const name=$('model').value;
+ const littlebit=fixedModelBackend(name);
+ if(littlebit||name==='deepseek-r1:32b')$('newRouting').value='manual';
+ $('newGpu').disabled=littlebit;
+ if(littlebit)$('newGpu').value='auto';
+};
+$('activeModel').onchange=async()=>{const model=$('activeModel').value;$('activeModel').disabled=true;try{await api({op:'configure',id:current,model,routing:'manual'});$('status').textContent='Model saved for this conversation.'}catch(error){messageError(error)}finally{await refresh(true)}};
+async function loadWorkspaces(){const response=await fetch('/llama/workspaces',{cache:'no-store'});const data=await response.json();if(!response.ok)throw Error(data.error);workspaceInfo=data.workspaces;for(const id of ['workspace','activeWorkspace']){const select=$(id),value=select.value;select.replaceChildren(new Option('General chat',''),...workspaceInfo.map(w=>new Option(w.repository+' · '+w.branch+' · '+w.id.slice(-6),w.id)));select.value=value}$('repository').replaceChildren(...data.repositories.map(r=>new Option(r.repository,r.repository)));return data}
+$('activeWorkspace').onchange=async()=>{try{await api({op:'configure',id:current,model:$('activeModel').value,workspace:$('activeWorkspace').value});$('status').textContent='Workspace saved for this conversation.'}catch(error){messageError(error)}finally{await refresh(true)}};
+$('checkoutOpen').onclick=async()=>{try{await loadWorkspaces();$('checkout').hidden=false}catch(error){messageError(error)}};
+$('checkoutCancel').onclick=()=>{$('checkout').hidden=true};
+$('checkout').onsubmit=async event=>{event.preventDefault();busy=true;$('checkoutButton').disabled=true;$('status').textContent='Checking out from local Gitea…';try{await api({op:'checkout',id:current,repository:$('repository').value,base_branch:$('baseBranch').value,branch:$('workBranch').value});await loadWorkspaces();$('checkout').hidden=true;$('status').textContent='Development workspace selected.'}catch(error){messageError(error)}finally{busy=false;$('checkoutButton').disabled=false;await refresh(true)}};
+window.addEventListener('online',()=>refresh(true));document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true)});
+window.addEventListener('popstate',()=>choose(new URLSearchParams(location.search).get('chat')||''));
+let modelSignature='';
+async function loadModels(){
+ const response=await fetch('/llama/chat-models',{cache:'no-store'});
+ if(!response.ok)throw Error('Could not load installed models');
+ const {models}=await response.json();
+ if(!models.length)throw Error('No local chat models available');
+ const signature=JSON.stringify(models.map(({name,label})=>[name,label]));
+ if(signature===modelSignature)return;
+ for(const id of ['model','activeModel']){
+  const select=$(id),previous=select.value;
+  select.replaceChildren(...models.map(({name,label})=>new Option(label||(name==='deepseek-r1:32b'?name+' · offline, text only':name),name)));
+  if(models.some(model=>model.name===previous))select.value=previous;
+  else if(id==='model'&&models.some(model=>model.name==='qwen3-coder:30b'))select.value='qwen3-coder:30b';
+ }
+ modelSignature=signature;
+}
+async function start(){
+ // Retire browser-only PWA navigation caches without erasing local conversations.
+ if('serviceWorker' in navigator){for(const registration of await navigator.serviceWorker.getRegistrations()){if(new URL(registration.scope).pathname.startsWith('/llama'))await registration.unregister()}}
+ await refresh(true);
+ try{await loadModels();await refresh(true)}
+ catch(error){messageError(error);$('createButton').disabled=true}
+ $('draft').value=sessionStorage.getItem('hal-draft:'+current)||'';
+ try{await loadWorkspaces();await refresh(true)}catch(error){messageError(error)}
+}
+const accessLabels={internet_restricted:'Restrict internet to listed websites',internet:'Internet · search and read public websites (off by default)',gitea:'Gitea · list, read and fetch repositories',edit:'Edit workspace files',worker:'Local worker · commands, builds and tests',local_web:'Read local web and test pages',test_db:'Isolated test PostgreSQL database',deploy:'Test deployment · configured PVP projects only',dependencies:'Download dependencies · PyPI/NuGet',auto_commit:'Allow automatic local commits · unchecked: review each commit',auto_lab_deploy:'Allow automatic lab deployment · update code, activate and run tests in the VM',android:'Android emulator · app install, screen and test commands',lab:'OL10.2 hardware lab · VM commands and simulated controls'};
+const defaultAccess={internet_restricted:false,internet_sites:[],internet:false,gitea:true,edit:true,worker:true,local_web:true,test_db:false,deploy:false,dependencies:false,auto_commit:false,lab:false,android:false};
+let workspaceTarget='new';
+function makeAccessPanel(id,permissions){
+ const panel=$(id);panel.replaceChildren();
+ const groups=[
+  ['Internet & websites',['internet','internet_restricted']],
+  ['Workspace & coding',['gitea','edit','worker','auto_commit']],
+  ['Testing & deployment',['local_web','test_db','deploy','lab','auto_lab_deploy','android']],
+  ['Packages & dependencies',['dependencies']]
+ ];
+ for(const [title,keys] of groups){
+  const group=document.createElement('fieldset'),legend=document.createElement('legend');legend.textContent=title;group.className='access-group';group.append(legend);
+  for(const key of keys){
+   const label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.dataset.permission=key;box.checked=Boolean(permissions[key]);label.append(box,document.createTextNode(accessLabels[key]));group.append(label);
+  }
+  if(keys.includes('internet')){
+   const label=document.createElement('label');label.textContent='Allowed websites';
+   const sites=document.createElement('textarea');sites.dataset.internetSites='true';sites.rows=3;sites.placeholder='example.com, *.example.com — * allows every public website';sites.value=(permissions.internet_sites||[]).join('\n');sites.setAttribute('aria-label','Allowed internet websites');label.append(sites);group.append(label);
+   const hint=document.createElement('small');hint.textContent='Applies only when website restriction is checked. Leave restriction off to allow all public websites. A checked restriction with an empty list allows none. For search, include www.google.com. Add example.com and *.example.com to allow a site and its subdomains.';group.append(hint);
+  }
+  panel.append(group);
+ }
+}
+function readAccess(id){return {...Object.fromEntries([...$(id).querySelectorAll('[data-permission]')].map(box=>[box.dataset.permission,box.checked])),internet_sites:($(id).querySelector('[data-internet-sites]')?.value||'').split(/[\s,]+/).filter(Boolean)}}
+function updateAccess(chat){
+ const snapshot=chat?JSON.stringify([chat.id,chat.permissions]):'';
+ if(chat&&$('activePermissions').dataset.snapshot!==snapshot){makeAccessPanel('activePermissions',chat.permissions||defaultAccess);$('activePermissions').dataset.chat=chat.id;$('activePermissions').dataset.snapshot=snapshot;}
+ for(const box of $('activePermissions').querySelectorAll('input,textarea'))box.disabled=busy||active||!chat;
+ $('saveAccess').disabled=busy||active||!chat;
+}
+makeAccessPanel('createPermissions',defaultAccess);
+$('saveAccess').onclick=async()=>{
+ try{await api({op:'configure',id:current,model:$('activeModel').value,permissions:readAccess('activePermissions')});$('status').textContent='Conversation access saved.';$('activePermissions').dataset.snapshot='';}
+ catch(error){messageError(error)}finally{await refresh(true)}
+};
+async function openWorkspace(target){
+ workspaceTarget=target;
+ $('workspaceAutoCommit').checked=$('workspaceSource').value==='new';
+ try{await loadWorkspaces();$('workspaceRepository').replaceChildren(...[...$('repository').options].map(option=>new Option(option.textContent,option.value)));$('workspaceError').textContent='';$('workspaceDialog').showModal();}
+ catch(error){messageError(error)}
+}
+$('createWorkspaceOpen').onclick=()=>openWorkspace('new');
+$('checkoutOpen').onclick=()=>openWorkspace('current');
+$('workspaceSource').onchange=()=>{const fresh=$('workspaceSource').value==='new';$('newProjectFields').hidden=!fresh;$('existingProjectFields').hidden=fresh;$('projectName').required=fresh;$('workspaceAutoCommit').checked=fresh;};
+$('workspaceSource').onchange();
+$('workspaceCancel').onclick=()=>$('workspaceDialog').close();
+$('workspaceForm').onsubmit=async event=>{
+ event.preventDefault();$('makeWorkspace').disabled=true;$('workspaceError').textContent='Creating workspace…';
+ const permissions=readAccess(workspaceTarget==='new'?'createPermissions':'activePermissions');
+ permissions.auto_commit=$('workspaceAutoCommit').checked;
+ try{
+  const result=await api({op:'create_workspace',...(workspaceTarget==='current'?{id:current}:{}),source:$('workspaceSource').value,project_name:$('projectName').value,repository:$('workspaceRepository').value,base_branch:$('workspaceBase').value,branch:$('workspaceBranch').value,permissions});
+  await loadWorkspaces();
+  if(workspaceTarget==='new'){makeAccessPanel('createPermissions',permissions);$('workspace').value=result.workspace.id;if(!$('name').value)$('name').value=$('projectName').value||result.workspace.repository.split('/').at(-1);}
+  else{$('activeWorkspace').value=result.workspace.id;$('activePermissions').dataset.snapshot='';await refresh(true);}
+  $('workspaceDialog').close();$('status').textContent='Workspace ready: '+result.workspace.repository;
+ }catch(error){$('workspaceError').textContent=error.message}
+ finally{$('makeWorkspace').disabled=false;}
+};
+
+const attachmentDrafts=new Map(),attachmentUploads=new Map();
+function draftAttachments(id=current){
+ if(!attachmentDrafts.has(id)){try{attachmentDrafts.set(id,JSON.parse(sessionStorage.getItem('hal-attachments:'+id)||'[]'))}catch{attachmentDrafts.set(id,[])}}
+ return attachmentDrafts.get(id);
+}
+function saveAttachments(id,items){attachmentDrafts.set(id,items);sessionStorage.setItem('hal-attachments:'+id,JSON.stringify(items));if(id===current)renderAttachmentTray();}
+function attachmentLink(item,preview=false){return '/llama/attachment?id='+encodeURIComponent(item.id)+(preview?'&preview=1':'')}
+function renderAttachmentTray(){
+ const tray=$('attachmentTray');tray.replaceChildren();
+ for(const item of draftAttachments()){
+  const row=document.createElement('div');row.className='attachment-chip';
+  const label=document.createElement('span');label.textContent=item.name+' · '+Math.ceil(item.size/1024)+' KiB'+(item.kind==='image'?' · OCR '+item.characters+' characters':'');
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.onclick=async()=>{try{await api({op:'remove_attachment',id:current,attachment_id:item.id});saveAttachments(current,draftAttachments().filter(a=>a.id!==item.id));pendingSend=null}catch(error){messageError(error)}};
+  row.append(label,remove);if(item.warning){const warning=document.createElement('small');warning.textContent=item.warning;row.append(warning)}tray.append(row);
+ }
+ const uploading=(attachmentUploads.get(current)||0)>0;
+ $('draft').required=draftAttachments().length===0;
+ $('send').disabled=busy||!current||uploading;$('send').textContent=active?'Send update':'Send';
+ $('attachmentStatus').textContent=uploading?'Uploading and extracting text…':'Text/code and PNG/JPEG/WebP · 10 MiB per file · 4 files per message. Images use vision when supported, otherwise OCR.';
+ $('attachButton').disabled=!current||creating;
+ $('messageSize').textContent=$('draft').value.length.toLocaleString()+' / 2,000,000 message characters';
+}
+function renderMessageAttachments(items,parent){
+ const group=document.createElement('div');group.className='message-attachments';
+ for(const item of items){
+  const card=document.createElement('div');card.className='attachment-card';
+  const link=document.createElement('a');link.href=attachmentLink(item);link.textContent='Download '+item.name;link.download=item.name;card.append(link);
+  if(item.kind==='image'){const image=document.createElement('img');image.src=attachmentLink(item,true);image.alt=item.name;image.loading='lazy';card.append(image)}
+  const details=document.createElement('small');details.textContent=Math.ceil(item.size/1024)+' KiB · '+item.characters.toLocaleString()+' extracted text characters'+(item.warning?' · '+item.warning:'');card.append(details);group.append(card);
+ }parent.append(group);
+}
+async function enqueueAttachments(files){
+ const id=current;if(!id||creating){messageError(Error('Create or select a conversation before attaching files.'));return;}
+ if(busy||(attachmentUploads.get(id)||0)>0){messageError(Error('Wait for the current save or upload to finish, then add more files.'));return;}
+ if(files.length+draftAttachments(id).length>4){messageError(Error('Attach at most four files per message.'));return;}
+ if(files.some(file=>!file.size||file.size>10*1024*1024)){messageError(Error('Each file must be nonempty and no larger than 10 MiB.'));return;}
+ attachmentUploads.set(id,(attachmentUploads.get(id)||0)+1);renderAttachmentTray();
+ try{
+  for(const file of files){
+   const encoded=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('Could not read '+file.name));reader.readAsDataURL(file)});
+   const result=await api({op:'upload_attachment',id,name:file.name,data:encoded});
+   saveAttachments(id,[...draftAttachments(id),result.attachment]);
+  }
+  pendingSend=null;
+ }catch(error){messageError(error)}
+ finally{attachmentUploads.set(id,Math.max(0,(attachmentUploads.get(id)||1)-1));renderAttachmentTray()}
+}
+$('attachButton').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async()=>{await enqueueAttachments([...$('fileInput').files]);$('fileInput').value=''};
+$('draft').addEventListener('paste',event=>{
+ const files=[...(event.clipboardData?.items||[])].filter(item=>item.kind==='file').map(item=>item.getAsFile()).filter(Boolean);
+ if(files.length){event.preventDefault();enqueueAttachments(files);return;}
+ const text=event.clipboardData?.getData('text/plain')||'';
+ if(text.length>24000){event.preventDefault();enqueueAttachments([new File([text],'pasted-text-'+Date.now()+'.txt',{type:'text/plain'})]);$('status').textContent='Large paste attached as a text file so HAL can read it in sections.';}
+});
+for(const id of ['compose','scroll']){
+ $(id).addEventListener('dragover',event=>{if([...event.dataTransfer.types].includes('Files')){event.preventDefault();$('compose').classList.add('file-drop')}});
+ $(id).addEventListener('dragleave',()=>$('compose').classList.remove('file-drop'));
+ $(id).addEventListener('drop',event=>{if(event.dataTransfer.files.length){event.preventDefault();$('compose').classList.remove('file-drop');enqueueAttachments([...event.dataTransfer.files])}});
+}
+document.addEventListener('dragover',event=>{if([...event.dataTransfer.types].includes('Files'))event.preventDefault()});
+document.addEventListener('drop',event=>{if(event.dataTransfer.files.length)event.preventDefault()});
+$('draft').addEventListener('input',renderAttachmentTray);
+renderAttachmentTray();
+
+let controlsPinned=false,controlsExpanded=true,lastChatScroll=0;
+try{controlsPinned=localStorage.getItem('hal-controls-pinned')==='true'}catch{}
+const tabletQuery=window.matchMedia?window.matchMedia('(max-width:1100px), (pointer:coarse)'):{matches:false};
+function setControls(expanded){
+ controlsExpanded=controlsPinned||expanded;
+ document.body.classList.toggle('tablet-layout',tabletQuery.matches);
+ document.body.classList.toggle('controls-collapsed',tabletQuery.matches&&!controlsExpanded);
+ $('toggleControls').setAttribute('aria-expanded',String(controlsExpanded));
+ $('toggleControls').textContent=controlsExpanded?'Hide controls':'Controls';
+ $('pinControls').checked=controlsPinned;
+}
+$('toggleControls').onclick=()=>setControls(!controlsExpanded);
+$('pinControls').onchange=()=>{controlsPinned=$('pinControls').checked;try{localStorage.setItem('hal-controls-pinned',String(controlsPinned))}catch{}setControls(controlsPinned)};
+$('quickStop').onclick=()=>$('stopConversation').onclick();
+$('reviewShortcut').onclick=()=>$('reviewDock').scrollIntoView({block:'nearest',behavior:'smooth'});
+$('scroll').addEventListener('scroll',()=>{const top=$('scroll').scrollTop;if(top>lastChatScroll+8&&!controlsPinned&&!creating)setControls(false);lastChatScroll=top;});
+$('draft').addEventListener('focus',()=>{if(!controlsPinned)setControls(false)});
+if(tabletQuery.addEventListener)tabletQuery.addEventListener('change',()=>setControls(controlsExpanded));
+setControls(controlsPinned);
+let reviewRequest=false,reviewStamp=0,reviewChat='',reviewSignature='';
+function dismissNoticeButton(kind,id){
+ const button=document.createElement('button');button.type='button';button.textContent='Dismiss';button.title='Clear this notice on your devices; saved history is kept';
+ const chat=current;button.onclick=async()=>{button.disabled=true;try{await api({op:'dismiss_notice',id:chat,kind,notice_id:id});reviewStamp=0;reviewSignature='';await refresh(true);await loadReviews(true)}catch(error){messageError(error)}finally{button.disabled=false}};
+ return button;
+}
+$('restoreNotices').onclick=async()=>{if(!current)return;try{await api({op:'restore_notices',id:current});reviewStamp=0;reviewSignature='';await refresh(true);await loadReviews(true)}catch(error){messageError(error)}};
+function renderReviews(records,repository=null,automatic=false,repositoryNotice=null,labDeployments=[]){
+ const dock=$('reviewDock');dock.replaceChildren();dock.hidden=creating||(!repository&&records.length===0&&labDeployments.length===0);
+ const awaiting=records.filter(r=>r.state!=='pushed').length+labDeployments.filter(r=>r.state==='pending').length;
+ $('reviewShortcut').hidden=!repository&&!records.length&&!labDeployments.length;$('reviewShortcut').textContent=awaiting?'Reviews ('+awaiting+')':'Repository';
+ if(repository){
+  const card=document.createElement('section');card.className='review-card';
+  const heading=document.createElement('strong');heading.textContent=repository.repository+' · '+repository.branch;
+  const status=document.createElement('p');status.textContent=(repository.dirty?'Uncommitted changes':'Clean working tree')+' · Local commit '+repository.head.slice(0,8)+' · '+(repository.remote_matches_head===true?'Published to Gitea':repository.remote_matches_head===false?'Local HEAD differs from Gitea':'Gitea status could not be verified');
+  const policy=document.createElement('p');policy.textContent=(automatic?'Automatic local commits enabled.':'Local commits require review.')+' '+(repository.pending_approvals?.length?repository.pending_approvals.length+' commit review(s) pending.':'No commit approval pending.');
+  card.append(heading,status,policy);if(repositoryNotice)card.append(dismissNoticeButton('repository',repositoryNotice));dock.append(card);
+ }
+ for(const review of records){
+  const card=document.createElement('section');card.className='review-card';
+  const title=document.createElement('strong');title.textContent=review.state==='pushed'?'Pushed to Gitea · '+(review.commit||'').slice(0,8):review.state==='committed'?'Local commit ready · push needs approval':'Commit review required';
+  const message=document.createElement('p');message.textContent=review.message;
+  const actions=document.createElement('div');actions.className='review-actions';
+  for(const push of review.state==='pushed'?[]:review.state==='committed'?[true]:[false,true]){
+   const button=document.createElement('button');button.type='button';button.textContent=review.state==='committed'?'Approve push':push?'Approve commit & push':'Approve commit only';button.disabled=active||busy;
+   const chat=current;button.onclick=async()=>{button.disabled=true;try{await api({op:'approve_commit',id:chat,approval_id:review.id,push});$('status').textContent=push?'Approved changes pushed to Gitea.':'Local commit created; no push.';reviewStamp=0;reviewSignature='';await refresh(true)}catch(error){messageError(error)}finally{button.disabled=false;loadReviews(true)}};actions.append(button);
+  }
+  const details=document.createElement('details'),summary=document.createElement('summary'),patch=document.createElement('pre');summary.textContent=review.state==='pending'?'Show changes to review':'Show committed diff';patch.textContent=review.diff;details.append(summary,patch);
+  card.append(title,message,actions,details);if(review.state==='pushed')card.append(dismissNoticeButton('approval',review.id));dock.append(card);
+ }
+ for(const deployment of labDeployments){
+  const card=document.createElement('section');card.className='review-card';const title=document.createElement('strong');title.textContent='Lab deployment · '+deployment.state+' · '+deployment.commit.slice(0,8);
+  const info=document.createElement('p');info.textContent=deployment.repository+' · '+deployment.branch+' → OL10.2 test VM';
+  const detail=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');summary.textContent='Activation, tests and results';pre.textContent='Activate:\n'+deployment.activate_command+'\n\nTest:\n'+deployment.test_command+(deployment.result?'\n\n'+JSON.stringify(deployment.result,null,2):deployment.error?'\n\n'+deployment.error:'');detail.append(summary,pre);card.append(title,info,detail);
+  if(deployment.state==='pending'){const button=document.createElement('button');button.type='button';button.textContent='Approve lab deployment';button.disabled=active||busy;const chat=current;button.onclick=async()=>{button.disabled=true;$('status').textContent='Updating, activating and testing in the lab VM…';try{await api({op:'approve_lab_deployment',id:chat,deployment_id:deployment.id});$('status').textContent='Lab deployment finished; inspect activation and test results.';reviewStamp=0;reviewSignature=''}catch(error){messageError(error)}finally{await loadReviews(true)}};card.append(button)}dock.append(card);
+ }
+
+}
+async function loadReviews(force=false){
+ const id=current;
+ if(reviewChat!==id){reviewChat=id;reviewStamp=0;reviewSignature='';renderReviews([])}
+ if(!id||creating||reviewRequest||(!force&&Date.now()-reviewStamp<10000))return;
+ reviewRequest=true;reviewStamp=Date.now();
+ try{
+  const response=await fetch('/llama/approvals?id='+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'});
+  if(!(response.headers.get('Content-Type')||'').includes('application/json'))throw Error('Sign in again to review commits.');
+  const result=await response.json();if(!response.ok)throw Error(result.error||'Could not load commit reviews');
+  if(current!==id||creating)return;
+  const sig=JSON.stringify(result);if(sig!==reviewSignature){renderReviews(result.approvals,result.repository_dismissed?null:result.repository,result.auto_commit,result.repository_notice_id,result.lab_deployments||[]);reviewSignature=sig}
+ }catch(error){if(current===id){$('reviewDock').hidden=false;$('reviewDock').textContent='Commit reviews unavailable: '+error.message;}}
+ finally{reviewRequest=false;}
+}
+
+
+let chatFontSize=tabletQuery.matches?14:16;
+try{const stored=Number(localStorage.getItem('hal-chat-font-size'));if(stored>=12&&stored<=22)chatFontSize=stored}catch{}
+function setChatFont(size){
+ chatFontSize=Math.max(12,Math.min(22,size));
+ document.documentElement.style.fontSize=chatFontSize+'px';
+ document.documentElement.style.setProperty('--chat-font-size',chatFontSize+'px');
+ try{localStorage.setItem('hal-chat-font-size',String(chatFontSize))}catch{}
+ for(const id of ['fontSmaller','desktopFontSmaller'])$(id).disabled=chatFontSize<=12;
+ for(const id of ['fontLarger','desktopFontLarger'])$(id).disabled=chatFontSize>=22;
+}
+for(const id of ['fontSmaller','desktopFontSmaller'])$(id).onclick=()=>setChatFont(chatFontSize-1);
+for(const id of ['fontLarger','desktopFontLarger'])$(id).onclick=()=>setChatFont(chatFontSize+1);
+setChatFont(chatFontSize);
+
+
+function inlineProse(text,parent){
+ const pieces=text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+ for(const piece of pieces){if(piece.startsWith('**')&&piece.endsWith('**')){const b=document.createElement('strong');b.textContent=piece.slice(2,-2);parent.append(b)}else if(piece.startsWith('`')&&piece.endsWith('`')){const code=document.createElement('code');code.textContent=piece.slice(1,-1);parent.append(code)}else parent.append(document.createTextNode(piece))}
+}
+function renderProse(text,parent){
+ let paragraph=[],list=null;
+ const flush=()=>{if(paragraph.length){const p=document.createElement('p');inlineProse(paragraph.join(' '),p);parent.append(p);paragraph=[]}};
+ for(const line of text.split('\n')){const heading=line.match(/^#{1,6}\s+(.+)/),bullet=line.match(/^\s*(?:[-*]|\d+[.)])\s+(.+)/);
+  if(!line.trim()){flush();list=null}else if(heading){flush();list=null;const h=document.createElement('h3');inlineProse(heading[1],h);parent.append(h)}else if(bullet){flush();if(!list){list=document.createElement(/^\s*\d/.test(line)?'ol':'ul');parent.append(list)}const li=document.createElement('li');inlineProse(bullet[1],li);list.append(li)}else{list=null;paragraph.push(line)}
+ }flush();
+}
+function branchIds(){return [...$('branchMessages').querySelectorAll('input:checked')].map(box=>box.value)}
+function branchType(){const topic=$('branchKind').value==='topic';$('branchTopicLabel').hidden=!topic;$('branchSummarize').hidden=!topic;$('branchQuestion').required=!topic;$('branchSelection').open=topic;}
+function openBranch(kind='topic',messageId=null){
+ branchSource=current;const chat=chats.find(c=>c.id===current),candidates=visibleMessages.filter(m=>['user','assistant'].includes(m.role));
+ $('branchKind').value=kind;$('branchName').value=kind==='topic'?(chat?.name||'Topic')+' · continued':'Side question';$('branchTopic').value='';$('branchContext').value=messageId?(candidates.find(m=>m.id===messageId)?.body||''):'';$('branchQuestion').value='';$('branchError').textContent='';
+ $('branchWorkspace').checked=kind==='topic'&&Boolean(chat?.workspace);$('branchWorkspace').disabled=!chat?.workspace;$('branchAccess').checked=kind==='topic'&&Boolean(chat?.workspace);
+ const defaults=new Set(messageId?[messageId]:candidates.slice(-6).map(m=>m.id));
+ $('branchMessages').replaceChildren(...candidates.map(message=>{const label=document.createElement('label'),box=document.createElement('input'),text=document.createElement('span');box.type='checkbox';box.value=message.id;box.checked=defaults.has(message.id);text.textContent=(message.role==='user'?'You: ':'HAL: ')+message.body.slice(0,300)+(message.body.length>300?'…':'');label.append(box,text);return label}));
+ branchType();$('branchDialog').showModal();
+}
+$('branchOpen').onclick=()=>openBranch('topic');$('branchKind').onchange=branchType;$('branchCancel').onclick=()=>$('branchDialog').close();
+$('branchSummarize').onclick=async()=>{const button=$('branchSummarize');button.disabled=true;$('branchError').textContent='Drafting a summary of only the selected messages…';try{const result=await api({op:'branch_preview',id:branchSource,source_ids:branchIds(),topic:$('branchTopic').value});$('branchContext').value=result.context;$('branchError').textContent='Review and edit the summary before creating the branch.'}catch(error){$('branchError').textContent=error.message}finally{button.disabled=false}};
+$('branchForm').onsubmit=async event=>{event.preventDefault();$('branchCreate').disabled=true;try{const result=await api({op:'branch',id:branchSource,kind:$('branchKind').value,name:$('branchName').value,source_ids:branchIds(),context:$('branchContext').value,question:$('branchQuestion').value,share_workspace:$('branchWorkspace').checked,copy_access:$('branchAccess').checked});$('branchDialog').close();await choose(result.id)}catch(error){$('branchError').textContent=error.message}finally{$('branchCreate').disabled=false}};
+$('resetFailures').onclick=async()=>{if(!confirm('Have you repaired the failed service or changed its state? This clears the repeated-failure guard for this chat.'))return;try{await api({op:'reset_failures',id:current,confirmed:true});$('status').textContent='Failure guard reset for this chat. The next attempt can run.'}catch(error){messageError(error)}};
+$('activeGpu').onchange=async()=>{
+ const gpu=$('activeGpu');
+ try{await api({op:'configure_gpu',id:current,gpu_affinity:gpu.value});$('status').textContent='GPU affinity saved for this conversation.'}
+ catch(error){messageError(error)}
+ finally{gpu.blur();await refresh(true)}
+};
+$('routing').onchange=async()=>{try{await api({op:'configure',id:current,model:$('activeModel').value,routing:$('routing').value});$('status').textContent='Answer mode saved. Auto chooses per message; Quick escalates when necessary.'}catch(error){messageError(error)}finally{await refresh(true)}};
+
+start().catch(messageError);setInterval(()=>{if(!document.hidden)loadModels().then(()=>refresh(true)).catch(()=>{})},15000);setInterval(()=>{if(!document.hidden)refresh()},2000);
+</script></body></html>
