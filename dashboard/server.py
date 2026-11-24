@@ -86,6 +86,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         url=urllib.parse.urlsplit(self.path)
+        if url.path=='/api/hardware-inventory':
+            import hardware_inventory
+            try:self.send_json(200,hardware_inventory.status())
+            except (OSError,ValueError,TypeError,KeyError):self.send_json(503,{'error':'Hardware inventory unavailable'})
+            return
         if url.path=="/api/storage-health":
             storage_health.get(self);return
         if url.path=="/api/case-fans":
@@ -170,7 +175,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except (ValueError,OverflowError): self.send_json(400,{'error':'Invalid history range'})
             except Exception: self.send_json(503,{'error':'History temporarily unavailable'})
             return
-        files={'/b65-sustained':'b65-sustained.html','/b65-sustained.js':'b65-sustained.js','/benchmarks':'benchmarks.html','/benchmarks/':'benchmarks.html','/benchmarks.js':'benchmarks.js','/benchmarks.css':'benchmarks.css','/':'index.html','/app.js':'app.js','/history-refresh.js':'history-refresh.js','/style.css':'style.css'}
+        files={'/b65-sustained':'b65-sustained.html','/b65-sustained.js':'b65-sustained.js','/benchmarks':'benchmarks.html','/benchmarks/':'benchmarks.html','/benchmarks.js':'benchmarks.js','/benchmarks.css':'benchmarks.css','/':'index.html','/app.js':'app.js','/history-refresh.js':'history-refresh.js','/hardware-inventory.js':'hardware-inventory.js','/style.css':'style.css'}
         files.update({'/hal-comparison': 'hal-comparison/index.html', '/hal-comparison/': 'hal-comparison/index.html', '/hal-comparison/evaluation.txt': 'hal-comparison/evaluation.txt', '/hal-comparison/report.css': 'hal-comparison/report.css', '/hal-comparison/task.txt': 'hal-comparison/task.txt', '/hal-comparison/hal-solution.txt': 'hal-comparison/hal-solution.txt', '/hal-comparison/codex-solution.txt': 'hal-comparison/codex-solution.txt', '/hal-comparison/hardware-evidence.txt': 'hal-comparison/hardware-evidence.txt', '/hal-comparison/hal-revision.txt': 'hal-comparison/hal-revision.txt'})
         files.update({'/hal-comparison/controls-hal.txt': 'hal-comparison/controls-hal.txt', '/hal-comparison/case-hal.txt': 'hal-comparison/case-hal.txt', '/hal-comparison/controls-task.txt': 'hal-comparison/controls-task.txt', '/hal-comparison/controls-codex.txt': 'hal-comparison/controls-codex.txt', '/hal-comparison/controls-hal.html': 'hal-comparison/controls-hal.html', '/hal-comparison/controls-codex.html': 'hal-comparison/controls-codex.html', '/hal-comparison/case-hal.html': 'hal-comparison/case-hal.html', '/hal-comparison/fan-test.html': 'hal-comparison/fan-test.html'})
         files["/gpu-controls.js"]="gpu-controls.js"
@@ -270,7 +275,3 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def send_json(self,status,payload):
         body=json.dumps(payload).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
 http.server.ThreadingHTTPServer(('0.0.0.0',80),Handler).serve_forever()
-
-
-
-
