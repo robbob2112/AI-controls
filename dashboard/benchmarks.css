@@ -1,5 +1,101 @@
-section{margin:36px 0}.benchmarkBars{display:grid;gap:18px;margin:24px 0}.benchmarkBar{display:grid;grid-template-columns:minmax(230px,1.3fr) minmax(150px,2fr) 105px;gap:16px;align-items:center}.benchmarkBar small{display:block;color:#aab9c8}.benchmarkBar svg{width:100%;height:26px;display:block}.benchmarkBar .track{fill:#243442}.benchmarkBar .sycl{fill:#65dcc0}.benchmarkBar .vulkan{fill:#f6be62}.benchmarkBar .reference{fill:#aab9c8}.benchmarkRate{text-align:right;font-variant-numeric:tabular-nums}.tableScroll{overflow:auto}.failed{color:#ffb8a8}.benchmarkBar .trialDetail{font-size:18pt}#benchmarkStatus{color:#80dfc3}#benchmarkActivity{color:#f6be62}@media(max-width:800px){.benchmarkBar{grid-template-columns:1fr 100px}.benchmarkBar>div:first-child{grid-column:1/-1}.benchmarkBar small{overflow-wrap:anywhere}}table td{vertical-align:top}header a{white-space:nowrap}
-details{margin:1rem 0;padding:1rem;border:1px solid #35474b;border-radius:8px}summary{cursor:pointer;font-weight:700}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85rem}button{padding:.5rem;margin:.75rem 0;cursor:pointer}
+section {
+  margin: 36px 0;
+}
+.benchmarkBars {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0;
+}
+.benchmarkBar {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.3fr) minmax(150px, 2fr) 105px;
+  gap: 16px;
+  align-items: center;
+}
+.benchmarkBar small {
+  display: block;
+  color: #aab9c8;
+}
+.benchmarkBar svg {
+  width: 100%;
+  height: 26px;
+  display: block;
+}
+.benchmarkBar .track {
+  fill: #243442;
+}
+.benchmarkBar .sycl {
+  fill: #65dcc0;
+}
+.benchmarkBar .vulkan {
+  fill: #f6be62;
+}
+.benchmarkBar .reference {
+  fill: #aab9c8;
+}
+.benchmarkRate {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tableScroll {
+  overflow: auto;
+}
+.failed {
+  color: #ffb8a8;
+}
+.benchmarkBar .trialDetail {
+  font-size: 18pt;
+}
+#benchmarkStatus {
+  color: #80dfc3;
+}
+#benchmarkActivity {
+  color: #f6be62;
+}
+@media (max-width: 800px) {
+  .benchmarkBar {
+    grid-template-columns: 1fr 100px;
+  }
+  .benchmarkBar > div:first-child {
+    grid-column: 1/-1;
+  }
+  .benchmarkBar small {
+    overflow-wrap: anywhere;
+  }
+}
+table td {
+  vertical-align: top;
+}
+header a {
+  white-space: nowrap;
+}
+details {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #35474b;
+  border-radius: 8px;
+}
+summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+button {
+  padding: 0.5rem;
+  margin: 0.75rem 0;
+  cursor: pointer;
+}
 
-.olderBenchmarkSection { margin-block: 1rem; }
-.olderBenchmarkSection > summary { cursor: pointer; font-size: 1.12em; font-weight: 650; padding-block: .55rem; }
+.olderBenchmarkSection {
+  margin-block: 1rem;
+}
+.olderBenchmarkSection > summary {
+  cursor: pointer;
+  font-size: 1.12em;
+  font-weight: 650;
+  padding-block: 0.55rem;
+}

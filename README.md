@@ -34,3 +34,11 @@ The hardware IDs, ports, service names and paths reflect the original deployment
 On the target Linux host, run `python3 dashboard/hardware_inventory.py --setup` once with permission to write `/var/lib/hal-monitor/discovered-hardware.json`. Install `pciutils` to resolve GPU model names. The scanner falls back to PCI IDs. Setup reads hardware data and saves the inventory locally.
 
 Open **Discovered hardware** on the status dashboard to see GPU models, drivers, and live readings for the saved sensor and fan channels. Missing devices show as unavailable. Rerun setup after hardware changes. Kernel labels are used when available. A raw fan channel may still need a physical label. Historical charts and fan controls use their existing configuration.
+
+## Coding style
+
+Use descriptive names, clear control flow, and comments that explain why a hardware or protocol
+constraint matters. Keep service configuration and credentials out of source. Prefer small changes
+that preserve existing routes and file formats. Format Python with Black at 100 columns. Format
+JavaScript, CSS and HTML with Prettier at 100 columns and preserve HTML whitespace semantics.
+Run checks locally before pushing. This repository does not require GitHub CI.

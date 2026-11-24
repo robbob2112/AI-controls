@@ -1,16 +1,280 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{AI_NAME}} · AI benchmarks</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/benchmarks.css"><script src="/benchmarks.js?v=overlap-20261124" defer></script></head>
-<body><main><header><div><p class="eyebrow">{{AI_NAME}} · LIVE MODEL TESTING</p><h1>AI benchmarks</h1><p>Measured on this server. Updates after each trial.</p></div><a href="https://192.0.2.10:8443/llama/benchmark-control">Benchmark Control</a> <a href="/">Server stats</a></header><p id="benchmarkStatus" role="status">Loading results…</p><p id="benchmarkActivity"></p><p id="replayStatus" role="status"></p>
+<html lang="en"
+  ><head
+    ><meta charset="utf-8" /><meta
+      name="viewport"
+      content="width=device-width,initial-scale=1" /><title>{{AI_NAME}} · AI benchmarks</title
+    ><link rel="stylesheet" href="/style.css" /><link
+      rel="stylesheet"
+      href="/benchmarks.css" /><script src="/benchmarks.js?v=overlap-20261124" defer></script
+  ></head>
+  <body
+    ><main
+      ><header
+        ><div
+          ><p class="eyebrow">{{AI_NAME}} · LIVE MODEL TESTING</p><h1>AI benchmarks</h1
+          ><p>Measured on this server. Updates after each trial.</p></div
+        ><a href="https://192.0.2.10:8443/llama/benchmark-control">Benchmark Control</a>
+        <a href="/">Server stats</a></header
+      ><p id="benchmarkStatus" role="status">Loading results…</p><p id="benchmarkActivity"></p
+      ><p id="replayStatus" role="status"></p>
 
-<section><h2>Test history and software versions</h2><p>Permanent snapshots retain earlier results when a model or software package changes. Expand a record for its notes, model hashes, versions, and measured results.</p><div id="historyRows"></div></section>
-<details class="olderBenchmarkSection"><summary>Software change notes</summary><section><h2>Software change notes</h2><div id="changeRows"></div></section></details>
-<details class="olderBenchmarkSection"><summary>AI accuracy benchmarks</summary><section><h2>AI accuracy benchmarks</h2><p id="accuracyNote">Standard benchmark results will appear as each model completes. Small subsets are screening tests, not full leaderboard scores.</p><div class="tableScroll"><table class="fanTable"><thead><tr><th>Model</th><th>GPU</th><th>Benchmark</th><th>Score</th><th>Examples</th><th>Test notes</th></tr></thead><tbody id="accuracyRows"></tbody></table></div></section></details>
-<details class="olderBenchmarkSection"><summary>Combined throughput</summary><section><h2>Combined throughput</h2><p>Total output across simultaneous requests, including request overhead. This is not the speed of one answer.</p><div id="parallelBars" class="benchmarkBars"></div></section></details>
-<details class="olderBenchmarkSection"><summary>One request at a time</summary><section><h2>One request at a time</h2><p>Median generation speed in tokens/sec. Usually three 512-token requests after warmup. The Radeon entry is a short historical reference.</p><div id="singleBars" class="benchmarkBars"></div></section></details>
-<details class="olderBenchmarkSection"><summary>Earlier matched comparison</summary><section><h2>Earlier matched comparison</h2><p>New-driver campaign: single-card and layer-split pair speeds, plus coding, reasoning, and tool-use screening. Overall equally weights the three accuracy percentages; it is not a full benchmark leaderboard. Older results remain below.</p><div class="tableScroll"><table class="fanTable"><thead><tr><th>Model</th><th>Best single GPU tok/s</th><th>Pair tok/s</th><th>Coding /20</th><th>Reasoning /50</th><th>Tool use /20</th><th>Overall</th><th>Status</th></tr></thead><tbody id="currentRows"></tbody></table></div></section></details>
-<details class="olderBenchmarkSection"><summary>What each model is intended for</summary><section id="modelPurposes"><h2>What each model is intended for</h2><p>Summaries of the publishers’ intended uses, not guarantees of measured {{AI_NAME}} performance. Use the speed and accuracy tables to assess this hardware. Vision and extended-thinking claims are not tested by this text-only, fast-profile campaign.</p><div class="tableScroll"><table class="fanTable"><thead><tr><th>Model</th><th>Intended uses</th><th>Source</th></tr></thead><tbody><tr><td>Qwen3-Coder 30B-A3B</td><td>Coding, codebase exploration and tool-driven software tasks.</td><td><a href="https://ollama.com/library/qwen3-coder" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Qwen3.5 35B-A3B</td><td>General multimodal chat, reasoning and tool use.</td><td><a href="https://ollama.com/library/qwen3.5" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Devstral Small2 24B</td><td>Software engineering agents, repository exploration and edits across multiple files.</td><td><a href="https://ollama.com/library/devstral-small-2" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Qwen3.8 27B</td><td>General multimodal assistant; this campaign evaluates text tasks only.</td><td><a href="https://huggingface.co/ggml-org/Qwen3.8-27B-GGUF" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>GPT-OSS 20B</td><td>Reasoning, tool use and developer/agent workflows.</td><td><a href="https://ollama.com/library/gpt-oss" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Gemma 4 26B-A4B</td><td>General reasoning, coding, agent workflows and multimodal understanding.</td><td><a href="https://ollama.com/library/gemma4" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>GLM-4.7-Flash 30B-A3B</td><td>Lightweight general reasoning and tool-using workflows.</td><td><a href="https://ollama.com/library/glm-4.7-flash" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Qwen3.6 35B-A3B</td><td>Agentic coding and general multimodal/tool workflows.</td><td><a href="https://ollama.com/library/qwen3.6" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Deep Cogito v1 Preview 3B</td><td>Compact instruction following, coding/STEM and tool use; optional extended-thinking mode.</td><td><a href="https://ollama.com/library/cogito:3b" target="_blank" rel="noopener">Model card</a></td></tr><tr><td>Deep Cogito v1 Preview 32B</td><td>Larger instruction-following, coding/STEM and tool-use model; optional extended thinking.</td><td><a href="https://ollama.com/library/cogito:32b" target="_blank" rel="noopener">Model card</a></td></tr></tbody></table></div></section></details>
-<details class="olderBenchmarkSection"><summary>B65 and Gen5 riser verification — November 14</summary><section id="b65Verification20261114"><h2>B65 and Gen5 riser verification — November 14</h2><p>Both B65s are detected and passed local Cogito generation separately and together. This dated hardware screening supersedes the earlier one-card inventory warning; it does not complete the broader model-accuracy campaign.</p><div class="tableScroll"><table class="fanTable"><thead><tr><th>Model</th><th>GPU setup</th><th>Offload profile</th><th>Two short greetings, tok/s</th><th>Separate 256-token decode, tok/s</th></tr></thead><tbody><tr><td>Cogito 3B</td><td>b65-0</td><td>full offload requested</td><td>142.5 / 138.9</td><td>139.7</td></tr><tr><td>Cogito 3B</td><td>b65-1</td><td>full offload requested</td><td>140.9 / 138.4</td><td>140.1</td></tr><tr><td>Cogito 3B</td><td>both</td><td>full offload requested</td><td>134.4 / 135.5</td><td>144.1</td></tr><tr><td>Cogito 32B</td><td>b65-0</td><td>45 layers, CPU + GPU</td><td>7.1 / 7.1</td><td>7.1</td></tr><tr><td>Cogito 32B</td><td>b65-1</td><td>45 layers, CPU + GPU</td><td>7.0 / 7.1</td><td>7.1</td></tr><tr><td>Cogito 32B</td><td>both</td><td>full offload requested</td><td>21.4 / 21.8</td><td>21.7</td></tr></tbody></table></div><p>Greeting prompts: “Say hello”, then “Say hello to the people at the DIY Solar Forum!” in one automated CLI run. Every complete run used /usr/bin/time -p. Current settings: 8192 context, batch 2048, microbatch 512, 16 threads, flash attention on, temperature 0, seed 42, Q4_K_M. Historical user settings were not fully recorded, so this is a screening comparison, not a matched regression benchmark. Earlier dual-card Cogito 32B greetings: 21.4 / 21.7; current: 21.4 / 21.8.</p><p>One 32B second-card attempt initially failed because an idle Qwen chat allocation occupied VRAM. After it expired naturally, the unfinished cases passed. That failed attempt and all previous results remain preserved; it is not an accuracy score or a card failure. Raw files, exact commands, hashes and timings: /scratch/b65-model-testing/gpu-comparison-20261114-151539/.</p></section></details>
-<details class="olderBenchmarkSection"><summary>Cogito · GPU + RAM + NVMe</summary><section id="offloadCampaign"><h2>Cogito · GPU + RAM + NVMe</h2><p>Local timed campaign preparing.</p></section></details>
-<details class="olderBenchmarkSection"><summary>One-hour model pairs</summary><section id="pairedCampaign"><h2>One-hour model pairs</h2><p>Loading campaign…</p></section></details>
-<section><h2>All trials</h2><div class="tableScroll"><table class="fanTable"><thead><tr><th>Model</th><th>GPU</th><th>Engine / settings</th><th>Streams</th><th>Tokens/sec</th><th>Result</th></tr></thead><tbody id="trialRows"></tbody></table></div></section>
-<p class="note">Context: 8,192 tokens per request in the controlled generation runs. Q4 models, temperature 0. Warmup and model loading excluded from generation rates. Different models can differ in tokenization and answer quality. Failed configurations are retained rather than plotted as zero.</p></main></body></html>
+      <section
+        ><h2>Test history and software versions</h2
+        ><p
+          >Permanent snapshots retain earlier results when a model or software package changes.
+          Expand a record for its notes, model hashes, versions, and measured results.</p
+        ><div id="historyRows"></div
+      ></section>
+      <details class="olderBenchmarkSection"
+        ><summary>Software change notes</summary
+        ><section><h2>Software change notes</h2><div id="changeRows"></div></section
+      ></details>
+      <details class="olderBenchmarkSection"
+        ><summary>AI accuracy benchmarks</summary
+        ><section
+          ><h2>AI accuracy benchmarks</h2
+          ><p id="accuracyNote"
+            >Standard benchmark results will appear as each model completes. Small subsets are
+            screening tests, not full leaderboard scores.</p
+          ><div class="tableScroll"
+            ><table class="fanTable"
+              ><thead
+                ><tr
+                  ><th>Model</th><th>GPU</th><th>Benchmark</th><th>Score</th><th>Examples</th
+                  ><th>Test notes</th></tr
+                ></thead
+              ><tbody id="accuracyRows"></tbody></table></div></section
+      ></details>
+      <details class="olderBenchmarkSection"
+        ><summary>Combined throughput</summary
+        ><section
+          ><h2>Combined throughput</h2
+          ><p
+            >Total output across simultaneous requests, including request overhead. This is not the
+            speed of one answer.</p
+          ><div id="parallelBars" class="benchmarkBars"></div></section
+      ></details>
+      <details class="olderBenchmarkSection"
+        ><summary>One request at a time</summary
+        ><section
+          ><h2>One request at a time</h2
+          ><p
+            >Median generation speed in tokens/sec. Usually three 512-token requests after warmup.
+            The Radeon entry is a short historical reference.</p
+          ><div id="singleBars" class="benchmarkBars"></div></section
+      ></details>
+      <details class="olderBenchmarkSection"
+        ><summary>Earlier matched comparison</summary
+        ><section
+          ><h2>Earlier matched comparison</h2
+          ><p
+            >New-driver campaign: single-card and layer-split pair speeds, plus coding, reasoning,
+            and tool-use screening. Overall equally weights the three accuracy percentages; it is
+            not a full benchmark leaderboard. Older results remain below.</p
+          ><div class="tableScroll"
+            ><table class="fanTable"
+              ><thead
+                ><tr
+                  ><th>Model</th><th>Best single GPU tok/s</th><th>Pair tok/s</th><th>Coding /20</th
+                  ><th>Reasoning /50</th><th>Tool use /20</th><th>Overall</th><th>Status</th></tr
+                ></thead
+              ><tbody id="currentRows"></tbody></table></div></section
+      ></details>
+      <details class="olderBenchmarkSection"
+        ><summary>What each model is intended for</summary
+        ><section id="modelPurposes"
+          ><h2>What each model is intended for</h2
+          ><p
+            >Summaries of the publishers’ intended uses, not guarantees of measured {{AI_NAME}}
+            performance. Use the speed and accuracy tables to assess this hardware. Vision and
+            extended-thinking claims are not tested by this text-only, fast-profile campaign.</p
+          ><div class="tableScroll"
+            ><table class="fanTable"
+              ><thead
+                ><tr><th>Model</th><th>Intended uses</th><th>Source</th></tr></thead
+              ><tbody
+                ><tr
+                  ><td>Qwen3-Coder 30B-A3B</td
+                  ><td>Coding, codebase exploration and tool-driven software tasks.</td
+                  ><td
+                    ><a href="https://ollama.com/library/qwen3-coder" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Qwen3.5 35B-A3B</td><td>General multimodal chat, reasoning and tool use.</td
+                  ><td
+                    ><a href="https://ollama.com/library/qwen3.5" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Devstral Small2 24B</td
+                  ><td
+                    >Software engineering agents, repository exploration and edits across multiple
+                    files.</td
+                  ><td
+                    ><a
+                      href="https://ollama.com/library/devstral-small-2"
+                      target="_blank"
+                      rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Qwen3.8 27B</td
+                  ><td>General multimodal assistant; this campaign evaluates text tasks only.</td
+                  ><td
+                    ><a
+                      href="https://huggingface.co/ggml-org/Qwen3.8-27B-GGUF"
+                      target="_blank"
+                      rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>GPT-OSS 20B</td><td>Reasoning, tool use and developer/agent workflows.</td
+                  ><td
+                    ><a href="https://ollama.com/library/gpt-oss" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Gemma 4 26B-A4B</td
+                  ><td>General reasoning, coding, agent workflows and multimodal understanding.</td
+                  ><td
+                    ><a href="https://ollama.com/library/gemma4" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>GLM-4.7-Flash 30B-A3B</td
+                  ><td>Lightweight general reasoning and tool-using workflows.</td
+                  ><td
+                    ><a
+                      href="https://ollama.com/library/glm-4.7-flash"
+                      target="_blank"
+                      rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Qwen3.6 35B-A3B</td
+                  ><td>Agentic coding and general multimodal/tool workflows.</td
+                  ><td
+                    ><a href="https://ollama.com/library/qwen3.6" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Deep Cogito v1 Preview 3B</td
+                  ><td
+                    >Compact instruction following, coding/STEM and tool use; optional
+                    extended-thinking mode.</td
+                  ><td
+                    ><a href="https://ollama.com/library/cogito:3b" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ><tr
+                  ><td>Deep Cogito v1 Preview 32B</td
+                  ><td
+                    >Larger instruction-following, coding/STEM and tool-use model; optional extended
+                    thinking.</td
+                  ><td
+                    ><a href="https://ollama.com/library/cogito:32b" target="_blank" rel="noopener"
+                      >Model card</a
+                    ></td
+                  ></tr
+                ></tbody
+              ></table
+            ></div
+          ></section
+        ></details
+      >
+      <details class="olderBenchmarkSection"
+        ><summary>B65 and Gen5 riser verification — November 14</summary
+        ><section id="b65Verification20261114"
+          ><h2>B65 and Gen5 riser verification — November 14</h2
+          ><p
+            >Both B65s are detected and passed local Cogito generation separately and together. This
+            dated hardware screening supersedes the earlier one-card inventory warning; it does not
+            complete the broader model-accuracy campaign.</p
+          ><div class="tableScroll"
+            ><table class="fanTable"
+              ><thead
+                ><tr
+                  ><th>Model</th><th>GPU setup</th><th>Offload profile</th
+                  ><th>Two short greetings, tok/s</th><th>Separate 256-token decode, tok/s</th></tr
+                ></thead
+              ><tbody
+                ><tr
+                  ><td>Cogito 3B</td><td>b65-0</td><td>full offload requested</td
+                  ><td>142.5 / 138.9</td><td>139.7</td></tr
+                ><tr
+                  ><td>Cogito 3B</td><td>b65-1</td><td>full offload requested</td
+                  ><td>140.9 / 138.4</td><td>140.1</td></tr
+                ><tr
+                  ><td>Cogito 3B</td><td>both</td><td>full offload requested</td
+                  ><td>134.4 / 135.5</td><td>144.1</td></tr
+                ><tr
+                  ><td>Cogito 32B</td><td>b65-0</td><td>45 layers, CPU + GPU</td><td>7.1 / 7.1</td
+                  ><td>7.1</td></tr
+                ><tr
+                  ><td>Cogito 32B</td><td>b65-1</td><td>45 layers, CPU + GPU</td><td>7.0 / 7.1</td
+                  ><td>7.1</td></tr
+                ><tr
+                  ><td>Cogito 32B</td><td>both</td><td>full offload requested</td
+                  ><td>21.4 / 21.8</td><td>21.7</td></tr
+                ></tbody
+              ></table
+            ></div
+          ><p
+            >Greeting prompts: “Say hello”, then “Say hello to the people at the DIY Solar Forum!”
+            in one automated CLI run. Every complete run used /usr/bin/time -p. Current settings:
+            8192 context, batch 2048, microbatch 512, 16 threads, flash attention on, temperature 0,
+            seed 42, Q4_K_M. Historical user settings were not fully recorded, so this is a
+            screening comparison, not a matched regression benchmark. Earlier dual-card Cogito 32B
+            greetings: 21.4 / 21.7; current: 21.4 / 21.8.</p
+          ><p
+            >One 32B second-card attempt initially failed because an idle Qwen chat allocation
+            occupied VRAM. After it expired naturally, the unfinished cases passed. That failed
+            attempt and all previous results remain preserved; it is not an accuracy score or a card
+            failure. Raw files, exact commands, hashes and timings:
+            /scratch/b65-model-testing/gpu-comparison-20261114-151539/.</p
+          ></section
+        ></details
+      >
+      <details class="olderBenchmarkSection"
+        ><summary>Cogito · GPU + RAM + NVMe</summary
+        ><section id="offloadCampaign"
+          ><h2>Cogito · GPU + RAM + NVMe</h2><p>Local timed campaign preparing.</p></section
+        ></details
+      >
+      <details class="olderBenchmarkSection"
+        ><summary>One-hour model pairs</summary
+        ><section id="pairedCampaign"
+          ><h2>One-hour model pairs</h2><p>Loading campaign…</p></section
+        ></details
+      >
+      <section
+        ><h2>All trials</h2
+        ><div class="tableScroll"
+          ><table class="fanTable"
+            ><thead
+              ><tr
+                ><th>Model</th><th>GPU</th><th>Engine / settings</th><th>Streams</th
+                ><th>Tokens/sec</th><th>Result</th></tr
+              ></thead
+            ><tbody id="trialRows"></tbody></table></div
+      ></section>
+      <p class="note"
+        >Context: 8,192 tokens per request in the controlled generation runs. Q4 models, temperature
+        0. Warmup and model loading excluded from generation rates. Different models can differ in
+        tokenization and answer quality. Failed configurations are retained rather than plotted as
+        zero.</p
+      ></main
+    ></body
+  ></html
+>

@@ -1,37 +1,263 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{AI_NAME}} Benchmark Control</title>
-<style>[hidden]{display:none!important}
-:root{color-scheme:dark;background:#101923;color:#e7eef5;font:16px system-ui}body{margin:0}main{max-width:1120px;margin:auto;padding:24px}
-nav{display:flex;gap:16px}a{color:#7ce2d0}section{background:#182432;border:1px solid #334656;border-radius:14px;margin:18px 0;padding:18px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-bottom:12px}
-label{display:flex;flex-direction:column;gap:4px}input,select,button{font:inherit;color:inherit;background:#111c27;border:1px solid #5e768a;border-radius:8px;padding:8px}
-button:not(:disabled),summary{cursor:pointer}button:disabled{opacity:.45}.primary{background:#7ce2d0;color:#09241e;font-weight:700}.danger,.warning{color:#ffb9b9}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid #334656;vertical-align:top}.scroll{overflow:auto}.muted{color:#b0c2d2}.actions{display:flex;gap:6px}
- .settingLabel{display:flex;align-items:center;gap:.4rem;position:relative}
- .helpBadge{width:1.2rem;height:1.2rem;border-radius:50%;padding:0;line-height:1;flex:none;font-size:.8rem}
- .helpTip{display:none;position:absolute;z-index:5;top:100%;left:0;width:min(16rem,72vw);padding:.55rem .7rem;background:#0b1520;border:1px solid #5e768a;border-radius:8px;font-size:.85rem;box-shadow:0 4px 12px #0006}
- .helpBadge:hover+.helpTip,.helpBadge:focus+.helpTip,.helpTip:hover{display:block}
- .settingField>select,.settingField>input{width:100%;box-sizing:border-box;margin-top:6px}
-</style><script src="/llama/benchmark-control.js?v=parallel-jobs-20261124" defer></script></head><body><main>
-<nav><a href="/llama/model-control">Model Control</a><a href="/llama/">{{AI_NAME}} chat</a><a href="http://192.0.2.10/benchmarks">Benchmark results</a></nav>
-<h1>Benchmark Control</h1><p id="availability" class="muted"></p><p id="announcement" role="status"></p>
-<section id="replayPanel" hidden><h2 id="replayTitle">Replay a test</h2><p id="replayDetails"></p><label>Queue placement<select id="replayPlacement"><option value="now">NOW</option><option value="start">START of queue</option><option value="end">END of queue</option></select></label><p><button type="button" class="primary" id="replayConfirm">Queue archived test</button></p></section><section><h2>Create a test</h2><form id="create">
-<div class="grid">
-<label>Model<select id="model" required></select></label>
-<label>GPU<select id="gpu"><option value="r9700">Radeon R9700</option><option value="b65">Intel Arc Pro B65-0</option><option value="cpu" disabled>{{AI_NAME}} CPU</option><option value="compare">Both GPUs · compare separately</option><option value="both">Both GPUs · split one model</option></select></label>
-<label>Backend<select id="backend"><option value="vulkan">Vulkan</option><option value="sycl">SYCL</option><option value="littlebit" disabled>LittleBit CPU</option></select></label>
-<label>Test suite<select id="suite"><option value="hourly">Timed workload</option><option value="fixed">Fixed work · 99 cases</option></select></label>
-<label><span id="timeLabel">Duration</span><select id="duration" required><option value="3600">1 hour</option></select></label>
-<label id="customDuration" hidden>Custom duration (minutes)<input id="minutes" type="number" step="any" required disabled></label>
-<label><input id="parallel" type="checkbox"> Allow overlap on the other GPU <span title="Both jobs must opt in and target different physical cards. Split jobs and cooldowns run alone.">ⓘ</span></label><label>Placement<select id="placement"><option value="now">NOW</option><option value="start">START of queue</option><option value="end">END of queue</option></select></label>
-<label>Earliest start · Mountain time<input id="schedule" type="datetime-local"></label>
-<label id="rearSetting" hidden>Rear fan duty (%)<input id="rearPercent" type="number" min="1" max="100" placeholder="Automatic"></label><label>Cooldown<select id="cooldown"><option value="30">To starting temperature · up to 30 min</option><option value="20">To starting temperature · up to 20 min</option><option value="10">To starting temperature · up to 10 min</option><option value="0">None</option></select></label>
-</div><details open><summary>Advanced backend settings</summary><div id="advanced" class="grid"></div></details>
-<p><button class="primary" id="createButton" disabled>Queue test</button></p></form></section>
-<section><h2>Running tests</h2><div class="scroll"><table><thead><tr><th>Test</th><th>Status</th><th>Elapsed</th><th>Estimated finish</th><th></th></tr></thead><tbody id="running"></tbody></table></div></section>
-<section><h2>Pending queue</h2><p class="muted">Eligible tests can run ahead of future tests.</p><div class="scroll"><table><thead><tr><th>File</th><th>Test</th><th>Earliest start</th><th>Move</th></tr></thead><tbody id="pending"></tbody></table></div></section>
-<section><h2>Models</h2><p id="loaded"></p><details><summary>Installed models</summary><ul id="installed"></ul></details>
-<form id="pull"><div class="grid"><label>Ollama model tag<input id="pullName" placeholder="model:tag" required></label></div>
-<button id="pullButton" disabled>Pull model</button> <a href="https://ollama.com/search" target="_blank" rel="noopener">Browse Ollama models</a><p id="pullStatus" class="muted"></p></form></section>
-</main></body></html>
+<html lang="en"
+  ><head
+    ><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{AI_NAME}} Benchmark Control</title>
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+      :root {
+        color-scheme: dark;
+        background: #101923;
+        color: #e7eef5;
+        font: 16px system-ui;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1120px;
+        margin: auto;
+        padding: 24px;
+      }
+      nav {
+        display: flex;
+        gap: 16px;
+      }
+      a {
+        color: #7ce2d0;
+      }
+      section {
+        background: #182432;
+        border: 1px solid #334656;
+        border-radius: 14px;
+        margin: 18px 0;
+        padding: 18px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        background: #111c27;
+        border: 1px solid #5e768a;
+        border-radius: 8px;
+        padding: 8px;
+      }
+      button:not(:disabled),
+      summary {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .primary {
+        background: #7ce2d0;
+        color: #09241e;
+        font-weight: 700;
+      }
+      .danger,
+      .warning {
+        color: #ffb9b9;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid #334656;
+        vertical-align: top;
+      }
+      .scroll {
+        overflow: auto;
+      }
+      .muted {
+        color: #b0c2d2;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+      }
+      .settingLabel {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        position: relative;
+      }
+      .helpBadge {
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        padding: 0;
+        line-height: 1;
+        flex: none;
+        font-size: 0.8rem;
+      }
+      .helpTip {
+        display: none;
+        position: absolute;
+        z-index: 5;
+        top: 100%;
+        left: 0;
+        width: min(16rem, 72vw);
+        padding: 0.55rem 0.7rem;
+        background: #0b1520;
+        border: 1px solid #5e768a;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        box-shadow: 0 4px 12px #0006;
+      }
+      .helpBadge:hover + .helpTip,
+      .helpBadge:focus + .helpTip,
+      .helpTip:hover {
+        display: block;
+      }
+      .settingField > select,
+      .settingField > input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 6px;
+      }</style
+    ><script src="/llama/benchmark-control.js?v=parallel-jobs-20261124" defer></script></head
+  ><body
+    ><main>
+      <nav
+        ><a href="/llama/model-control">Model Control</a><a href="/llama/">{{AI_NAME}} chat</a
+        ><a href="http://192.0.2.10/benchmarks">Benchmark results</a></nav
+      >
+      <h1>Benchmark Control</h1><p id="availability" class="muted"></p
+      ><p id="announcement" role="status"></p>
+      <section id="replayPanel" hidden
+        ><h2 id="replayTitle">Replay a test</h2><p id="replayDetails"></p
+        ><label
+          >Queue placement<select id="replayPlacement"
+            ><option value="now">NOW</option
+            ><option value="start">START of queue</option
+            ><option value="end">END of queue</option></select
+          ></label
+        ><p
+          ><button type="button" class="primary" id="replayConfirm">Queue archived test</button></p
+        ></section
+      ><section
+        ><h2>Create a test</h2
+        ><form id="create">
+          <div class="grid">
+            <label>Model<select id="model" required></select></label>
+            <label
+              >GPU<select id="gpu"
+                ><option value="r9700">Radeon R9700</option
+                ><option value="b65">Intel Arc Pro B65-0</option
+                ><option value="cpu" disabled>{{AI_NAME}} CPU</option
+                ><option value="compare">Both GPUs · compare separately</option
+                ><option value="both">Both GPUs · split one model</option></select
+              ></label
+            >
+            <label
+              >Backend<select id="backend"
+                ><option value="vulkan">Vulkan</option
+                ><option value="sycl">SYCL</option
+                ><option value="littlebit" disabled>LittleBit CPU</option></select
+              ></label
+            >
+            <label
+              >Test suite<select id="suite"
+                ><option value="hourly">Timed workload</option
+                ><option value="fixed">Fixed work · 99 cases</option></select
+              ></label
+            >
+            <label
+              ><span id="timeLabel">Duration</span
+              ><select id="duration" required
+                ><option value="3600">1 hour</option></select
+              ></label
+            >
+            <label id="customDuration" hidden
+              >Custom duration (minutes)<input
+                id="minutes"
+                type="number"
+                step="any"
+                required
+                disabled
+            /></label>
+            <label
+              ><input id="parallel" type="checkbox" /> Allow overlap on the other GPU
+              <span
+                title="Both jobs must opt in and target different physical cards. Split jobs and cooldowns run alone."
+                >ⓘ</span
+              ></label
+            ><label
+              >Placement<select id="placement"
+                ><option value="now">NOW</option
+                ><option value="start">START of queue</option
+                ><option value="end">END of queue</option></select
+              ></label
+            >
+            <label
+              >Earliest start · Mountain time<input id="schedule" type="datetime-local"
+            /></label>
+            <label id="rearSetting" hidden
+              >Rear fan duty (%)<input
+                id="rearPercent"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="Automatic" /></label
+            ><label
+              >Cooldown<select id="cooldown"
+                ><option value="30">To starting temperature · up to 30 min</option
+                ><option value="20">To starting temperature · up to 20 min</option
+                ><option value="10">To starting temperature · up to 10 min</option
+                ><option value="0">None</option></select
+              ></label
+            > </div
+          ><details open
+            ><summary>Advanced backend settings</summary><div id="advanced" class="grid"></div
+          ></details>
+          <p><button class="primary" id="createButton" disabled>Queue test</button></p></form
+        ></section
+      >
+      <section
+        ><h2>Running tests</h2
+        ><div class="scroll"
+          ><table
+            ><thead
+              ><tr
+                ><th>Test</th><th>Status</th><th>Elapsed</th><th>Estimated finish</th
+                ><th></th></tr></thead
+            ><tbody id="running"></tbody></table></div
+      ></section>
+      <section
+        ><h2>Pending queue</h2><p class="muted">Eligible tests can run ahead of future tests.</p
+        ><div class="scroll"
+          ><table
+            ><thead
+              ><tr><th>File</th><th>Test</th><th>Earliest start</th><th>Move</th></tr></thead
+            ><tbody id="pending"></tbody></table></div
+      ></section>
+      <section
+        ><h2>Models</h2><p id="loaded"></p
+        ><details><summary>Installed models</summary><ul id="installed"></ul></details>
+        <form id="pull"
+          ><div class="grid"
+            ><label>Ollama model tag<input id="pullName" placeholder="model:tag" required /></label
+          ></div>
+          <button id="pullButton" disabled>Pull model</button>
+          <a href="https://ollama.com/search" target="_blank" rel="noopener">Browse Ollama models</a
+          ><p id="pullStatus" class="muted"></p></form
+      ></section> </main></body
+></html>

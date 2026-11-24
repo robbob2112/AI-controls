@@ -1,31 +1,173 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{AI_NAME}} · Model Control</title><script src="/llama/model-control.js?v=model-purpose-20261124" defer></script>
-<style>
-:root{color-scheme:dark;background:#101923;color:#e7eef5;font:16px system-ui}
-main{max-width:1050px;margin:auto;padding:24px}nav,form{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-a{color:#7ce2d0}section{background:#182432;border:1px solid #334656;border-radius:12px;padding:16px;margin:16px 0}
-button,select,input{font:inherit;color:inherit;background:#111c27;border:1px solid #73889b;border-radius:7px;padding:7px}
-button:enabled{cursor:pointer}.primary{background:#7ce2d0;color:#09241e;font-weight:700}
-li{margin:.6em 0;overflow-wrap:anywhere}.specs{color:#b0c2d2;margin-left:.6em}
-.error{color:#ffb9b9}.help{position:relative;display:inline-block;margin-left:5px}
-.help summary{cursor:pointer;list-style:none;border:1px solid #73889b;border-radius:50%;width:1.15em;text-align:center}
-.help span{display:none;position:absolute;z-index:5;background:#0b1520;border:1px solid #73889b;border-radius:6px;padding:8px;width:min(18em,65vw)}
-.help[open] span,.help:hover span,.help:focus-within span{display:block}
-.installed-option{display:inline-flex;align-items:center;gap:.55rem;cursor:pointer;min-height:32px}
-.installed-option input[type=checkbox]{appearance:auto;accent-color:#7ce2d0;width:19px;height:19px;margin:0;cursor:pointer;flex:none}
-.installed-option input:disabled{opacity:.5;cursor:default}
-.variant-description{display:block;color:#cbd8e2;margin:.2rem 0 .65rem 1.55rem}
-#modelDescription{max-width:80ch;line-height:1.5}
-</style></head><body><main>
-<nav><a href="/llama/model-control" id="modelControlHome">Model Control</a><a href="http://192.0.2.10/">Server status</a><a href="/llama/">{{AI_NAME}} Chat</a><a href="/llama/benchmark-control">Benchmark Control</a></nav>
-<h1>Model Control</h1><p id="message" role="status"></p>
-<section><h2>Find models</h2>
-<form id="search"><label>Source <select id="source"><option value="ollama">Ollama catalog</option><option value="hf">Hugging Face GGUF</option></select></label>
-<label>Search <input id="query" maxlength="100" placeholder="e.g. Qwen or Gemma"></label><button>Search</button></form>
-<button id="backToSearch" type="button" hidden>Back to model search</button><p id="matchesStatus" role="status"></p><ul id="matches"></ul><section id="modelCard" hidden><h3 id="modelCardTitle"></h3><p id="modelCardSpecs"></p><div id="modelDescription" aria-live="polite"></div><h4>Versions and variants</h4><ul id="modelVersions"></ul></section></section>
-<section><h2>Review selected models</h2><div>Uncheck any versions you want to skip.
-<details class="help"><summary aria-label="About file sizes and memory">?</summary><span>Published download size is an estimate of the model data. Local RAM or VRAM can be higher because of context, caches, and runtime buffers. The numbers are not a guarantee that the model fits on a GPU.</span></details></div>
-<ul id="review"></ul><button id="install" class="primary" type="button" disabled>Download and register</button><p id="progress" role="status"></p><ul id="results"></ul></section>
-<section><h2>Installed models</h2><ul id="installed"></ul><button id="delete" type="button" disabled>Delete selected models</button><p id="deleteStatus" role="status"></p><ul id="deletions" aria-live="polite"></ul></section>
-</main></body></html>
+<html lang="en"
+  ><head
+    ><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{AI_NAME}} · Model Control</title
+    ><script src="/llama/model-control.js?v=model-purpose-20261124" defer></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #101923;
+        color: #e7eef5;
+        font: 16px system-ui;
+      }
+      main {
+        max-width: 1050px;
+        margin: auto;
+        padding: 24px;
+      }
+      nav,
+      form {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      a {
+        color: #7ce2d0;
+      }
+      section {
+        background: #182432;
+        border: 1px solid #334656;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+      }
+      button,
+      select,
+      input {
+        font: inherit;
+        color: inherit;
+        background: #111c27;
+        border: 1px solid #73889b;
+        border-radius: 7px;
+        padding: 7px;
+      }
+      button:enabled {
+        cursor: pointer;
+      }
+      .primary {
+        background: #7ce2d0;
+        color: #09241e;
+        font-weight: 700;
+      }
+      li {
+        margin: 0.6em 0;
+        overflow-wrap: anywhere;
+      }
+      .specs {
+        color: #b0c2d2;
+        margin-left: 0.6em;
+      }
+      .error {
+        color: #ffb9b9;
+      }
+      .help {
+        position: relative;
+        display: inline-block;
+        margin-left: 5px;
+      }
+      .help summary {
+        cursor: pointer;
+        list-style: none;
+        border: 1px solid #73889b;
+        border-radius: 50%;
+        width: 1.15em;
+        text-align: center;
+      }
+      .help span {
+        display: none;
+        position: absolute;
+        z-index: 5;
+        background: #0b1520;
+        border: 1px solid #73889b;
+        border-radius: 6px;
+        padding: 8px;
+        width: min(18em, 65vw);
+      }
+      .help[open] span,
+      .help:hover span,
+      .help:focus-within span {
+        display: block;
+      }
+      .installed-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        cursor: pointer;
+        min-height: 32px;
+      }
+      .installed-option input[type="checkbox"] {
+        appearance: auto;
+        accent-color: #7ce2d0;
+        width: 19px;
+        height: 19px;
+        margin: 0;
+        cursor: pointer;
+        flex: none;
+      }
+      .installed-option input:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .variant-description {
+        display: block;
+        color: #cbd8e2;
+        margin: 0.2rem 0 0.65rem 1.55rem;
+      }
+      #modelDescription {
+        max-width: 80ch;
+        line-height: 1.5;
+      }
+    </style></head
+  ><body
+    ><main>
+      <nav
+        ><a href="/llama/model-control" id="modelControlHome">Model Control</a
+        ><a href="http://192.0.2.10/">Server status</a><a href="/llama/">{{AI_NAME}} Chat</a
+        ><a href="/llama/benchmark-control">Benchmark Control</a></nav
+      >
+      <h1>Model Control</h1><p id="message" role="status"></p>
+      <section
+        ><h2>Find models</h2>
+        <form id="search"
+          ><label
+            >Source
+            <select id="source"
+              ><option value="ollama">Ollama catalog</option
+              ><option value="hf">Hugging Face GGUF</option></select
+            ></label
+          >
+          <label>Search <input id="query" maxlength="100" placeholder="e.g. Qwen or Gemma" /></label
+          ><button>Search</button></form
+        >
+        <button id="backToSearch" type="button" hidden>Back to model search</button
+        ><p id="matchesStatus" role="status"></p><ul id="matches"></ul
+        ><section id="modelCard" hidden
+          ><h3 id="modelCardTitle"></h3><p id="modelCardSpecs"></p
+          ><div id="modelDescription" aria-live="polite"></div><h4>Versions and variants</h4
+          ><ul id="modelVersions"></ul></section
+      ></section>
+      <section
+        ><h2>Review selected models</h2
+        ><div
+          >Uncheck any versions you want to skip.
+          <details class="help"
+            ><summary aria-label="About file sizes and memory">?</summary
+            ><span
+              >Published download size is an estimate of the model data. Local RAM or VRAM can be
+              higher because of context, caches, and runtime buffers. The numbers are not a
+              guarantee that the model fits on a GPU.</span
+            ></details
+          ></div
+        >
+        <ul id="review"></ul
+        ><button id="install" class="primary" type="button" disabled>Download and register</button
+        ><p id="progress" role="status"></p><ul id="results"></ul
+      ></section>
+      <section
+        ><h2>Installed models</h2><ul id="installed"></ul
+        ><button id="delete" type="button" disabled>Delete selected models</button
+        ><p id="deleteStatus" role="status"></p><ul id="deletions" aria-live="polite"></ul
+      ></section> </main></body
+></html>
