@@ -1,0 +1,10 @@
+# Paste this into your local AI
+
+Set up HAL Controls on my Linux host using the code in this checkout. If the checkout is missing, clone https://github.com/robbob2112/HAL-controls.git into a new directory. I already run a local AI stack. Keep existing inference services, model files, and application settings intact.
+
+1. Read the README and inspect how the gateway, dashboard, model catalog, benchmark broker, and queue start. Identify bundled modules and external dependencies. Treat historical paths and example addresses as configuration to adapt to my host.
+2. Inventory the OS, Python version, systemd, Ollama URL and model storage, GPUs and VRAM, drivers and render nodes, available ports, and telemetry sensors. Check which features my setup actually supports.
+3. Stage an installation that reuses my inference service where possible. Locate the needed app assets, runtime paths, systemd services, users or groups, and socket permissions. Create local service configuration as needed. Use a local secret store or restricted config for authentication and TLS material. Never put real credentials or host-specific settings into the Git repository.
+4. Start with the dashboard and read-only telemetry on loopback. Then validate the authenticated gateway, HAL Chat, and Model Control against the existing Ollama inventory. Keep unattended public access disabled. Ask before privileged changes or exposing the service to other devices.
+5. Keep fan writes disabled until I approve them and you verify sensor and fan mappings. Enable each benchmark profile only after checking its fixtures, sandbox, backend, device mapping, and cooling telemetry. Use a short test on a supported GPU when I approve running one. Preserve existing models and benchmark history.
+6. Report the URLs, local config paths, enabled features, verification results, and remaining blockers. Include how to stop or roll back any services you added. If you lack shell access, give me the exact commands for the current step and wait for their results.
