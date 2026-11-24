@@ -5,6 +5,7 @@ import datetime
 from contextlib import contextmanager
 import fcntl
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -598,30 +599,58 @@ class Queue:
                 handoff.unlink()
         self.finish(folder, record, saved_spec)
 
+    def recover_job(self, folder, reason):
+        archived = self.archive / folder.name
+        if archived.exists():
+            report = read_json(archived / "website.json")
+            write_json(self.public / "runs" / (folder.name + ".json"), report)
+            return
+        jobs = [path for path in folder.iterdir() if NAME.fullmatch(path.name)]
+        if not jobs:
+            if not any(folder.iterdir()):
+                folder.rmdir()
+            return
+        if (folder / "website.json").is_file():
+            report = read_json(folder / "website.json")
+            folder.rename(archived)
+            write_json(self.public / "runs" / (folder.name + ".json"), report)
+            return
+        try:
+            record = read_json(folder / "outcome.json")
+            if not isinstance(record, dict):
+                record = {}
+        except (OSError, ValueError):
+            record = {}
+        record.setdefault("file", jobs[0].name)
+        try:
+            spec = read_json(jobs[0])
+        except (OSError, ValueError):
+            spec = {}
+        if not record.get("status"):
+            record.update(status="interrupted", error=reason)
+        self.finish(folder, record, spec if isinstance(spec, dict) else {})
+
+    def try_recover_job(self, folder, reason):
+        try:
+            self.recover_job(folder, reason)
+        except Exception:
+            logging.exception("Could not archive or publish benchmark %s; will retry", folder.name)
+            return False
+        return True
+
     def recover(self):
+        deferred = {}
+        reason = "Queue worker restarted during this step"
         for folder in sorted(self.running.iterdir()):
-            if not folder.is_dir():
-                continue
-            jobs = [p for p in folder.iterdir() if NAME.fullmatch(p.name)]
-            if not jobs:
-                if not any(folder.iterdir()):
-                    folder.rmdir()
-                continue
-            try:
-                record = read_json(folder / "outcome.json")
-            except (OSError, ValueError):
-                record = {"file": jobs[0].name}
-            if (folder / "website.json").is_file():
-                report = read_json(folder / "website.json")
-                folder.rename(self.archive / folder.name)
-                write_json(self.public / "runs" / (folder.name + ".json"), report)
-                continue
-            try:
-                spec = read_json(jobs[0])
-            except (OSError, ValueError):
-                spec = {}
-            record.update(status="interrupted", error="Queue worker restarted during this step")
-            self.finish(folder, record, spec if isinstance(spec, dict) else {})
+            if folder.is_dir() and not self.try_recover_job(folder, reason):
+                deferred[folder] = reason
+        for archived in self.archive.iterdir():
+            public = self.public / "runs" / (archived.name + ".json")
+            if not public.exists() and (archived / "website.json").is_file():
+                folder = self.running / archived.name
+                if folder not in deferred and not self.try_recover_job(folder, reason):
+                    deferred[folder] = reason
+        return deferred
 
     def run(self):
         with (self.root / "queue.lock").open("a") as lock:
@@ -629,18 +658,26 @@ class Queue:
             if not legacy_active():
                 REAR.unlink(missing_ok=True)
             write_json(self.root / "control-worker.json", {"pid": os.getpid(), "version": 1})
-            self.recover()
-            for archived in self.archive.iterdir():
-                public = self.public / "runs" / (archived.name + ".json")
-                if not public.exists() and (archived / "website.json").is_file():
-                    write_json(public, read_json(archived / "website.json"))
+            deferred = self.recover()
+            next_recovery = 0.0
             active = {}
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                 while not STOP:
                     for future in list(active):
                         if future.done():
-                            future.result()
-                            del active[future]
+                            _, _, folder = active.pop(future)
+                            try:
+                                future.result()
+                            except Exception:
+                                logging.exception("Benchmark worker failed for %s", folder.name)
+                                deferred[folder] = (
+                                    "Benchmark worker failed while recording this step"
+                                )
+                    if deferred and time.monotonic() >= next_recovery:
+                        for folder, reason in list(deferred.items()):
+                            if self.try_recover_job(folder, reason):
+                                del deferred[folder]
+                        next_recovery = time.monotonic() + 10
                     with schedule_lock(self.root):
                         legacy = legacy_active()
                         candidates = self.candidates()

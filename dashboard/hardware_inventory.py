@@ -28,6 +28,14 @@ def read(path):
         return ""
 
 
+def vram_bytes(path):
+    try:
+        amount = int(read(path))
+        return amount if amount > 0 else None
+    except ValueError:
+        return None
+
+
 def pci_names():
     try:
         result = subprocess.run(
@@ -57,7 +65,7 @@ def discover(root=Path("/sys"), names=None):
             "id": device.name,
             "model": (names or {}).get(device.name) or f"PCI {vendor}:{product}",
             "driver": driver.resolve().name if driver.is_symlink() else "",
-            "vram_bytes": int(read(device / "mem_info_vram_total") or 0),
+            "vram_bytes": vram_bytes(device / "mem_info_vram_total"),
         }
 
     sensors = {}

@@ -16,7 +16,26 @@ import psu_current
 
 ROOT = pathlib.Path("/opt/hal-dashboard")
 DB = "/var/lib/hal-monitor/history.sqlite3"
-NAMES = json.loads((ROOT / "sensor-names.json").read_text())
+
+
+def load_sensor_names(path):
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"devices": {}, "channels": {}}
+    if not isinstance(data, dict):
+        return {"devices": {}, "channels": {}}
+    return {
+        section: (
+            {key: value for key, value in data[section].items() if isinstance(value, str)}
+            if isinstance(data.get(section), dict)
+            else {}
+        )
+        for section in ("devices", "channels")
+    }
+
+
+NAMES = load_sensor_names(ROOT / "sensor-names.json")
 
 
 def sensor_name(sensor):
