@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HAL Benchmark Control</title>
+<title>{{AI_NAME}} Benchmark Control</title>
 <style>[hidden]{display:none!important}
 :root{color-scheme:dark;background:#101923;color:#e7eef5;font:16px system-ui}body{margin:0}main{max-width:1120px;margin:auto;padding:24px}
 nav{display:flex;gap:16px}a{color:#7ce2d0}section{background:#182432;border:1px solid #334656;border-radius:14px;margin:18px 0;padding:18px}
@@ -14,12 +14,12 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;bord
  .helpBadge:hover+.helpTip,.helpBadge:focus+.helpTip,.helpTip:hover{display:block}
  .settingField>select,.settingField>input{width:100%;box-sizing:border-box;margin-top:6px}
 </style><script src="/llama/benchmark-control.js?v=parallel-jobs-20261124" defer></script></head><body><main>
-<nav><a href="/llama/model-control">Model Control</a><a href="/llama/">HAL chat</a><a href="http://192.0.2.10/benchmarks">Benchmark results</a></nav>
+<nav><a href="/llama/model-control">Model Control</a><a href="/llama/">{{AI_NAME}} chat</a><a href="http://192.0.2.10/benchmarks">Benchmark results</a></nav>
 <h1>Benchmark Control</h1><p id="availability" class="muted"></p><p id="announcement" role="status"></p>
 <section id="replayPanel" hidden><h2 id="replayTitle">Replay a test</h2><p id="replayDetails"></p><label>Queue placement<select id="replayPlacement"><option value="now">NOW</option><option value="start">START of queue</option><option value="end">END of queue</option></select></label><p><button type="button" class="primary" id="replayConfirm">Queue archived test</button></p></section><section><h2>Create a test</h2><form id="create">
 <div class="grid">
 <label>Model<select id="model" required></select></label>
-<label>GPU<select id="gpu"><option value="r9700">Radeon R9700</option><option value="b65">Intel Arc Pro B65-0</option><option value="cpu" disabled>HAL CPU</option><option value="compare">Both GPUs · compare separately</option><option value="both">Both GPUs · split one model</option></select></label>
+<label>GPU<select id="gpu"><option value="r9700">Radeon R9700</option><option value="b65">Intel Arc Pro B65-0</option><option value="cpu" disabled>{{AI_NAME}} CPU</option><option value="compare">Both GPUs · compare separately</option><option value="both">Both GPUs · split one model</option></select></label>
 <label>Backend<select id="backend"><option value="vulkan">Vulkan</option><option value="sycl">SYCL</option><option value="littlebit" disabled>LittleBit CPU</option></select></label>
 <label>Test suite<select id="suite"><option value="hourly">Timed workload</option><option value="fixed">Fixed work · 99 cases</option></select></label>
 <label><span id="timeLabel">Duration</span><select id="duration" required><option value="3600">1 hour</option></select></label>

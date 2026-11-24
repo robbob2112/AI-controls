@@ -21,7 +21,7 @@ SESSION_FILE=pathlib.Path('/var/lib/hal-gateway/sessions.json')
 try:SESSIONS=json.loads(SESSION_FILE.read_text())
 except (OSError,ValueError):SESSIONS={}
 SESSION_LOCK=threading.Lock()
-LOGIN_PAGE=b'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HAL chat sign in</title><style>body{font:18px system-ui;background:#101820;color:#eee;max-width:420px;margin:10vh auto;padding:24px}input,button{box-sizing:border-box;font:inherit;padding:12px;width:100%;margin:8px 0 20px}a{color:#73dfcd}</style><h1>Sign in to HAL chat</h1><p>Use your existing HAL chat account.</p><form action="/login" method="post"><label>Username<input name="username" autocomplete="username" value="hal" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><label><input style="width:auto;margin:0 8px 20px 0" name="remember" type="checkbox" value="yes" checked>Keep me signed in for 30 days</label><button>Sign in</button></form></html>'
+LOGIN_PAGE=b'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{AI_NAME}} chat sign in</title><style>body{font:18px system-ui;background:#101820;color:#eee;max-width:420px;margin:10vh auto;padding:24px}input,button{box-sizing:border-box;font:inherit;padding:12px;width:100%;margin:8px 0 20px}a{color:#73dfcd}</style><h1>Sign in to {{AI_NAME}} chat</h1><p>Use your existing {{AI_NAME}} chat account.</p><form action="/login" method="post"><label>Username<input name="username" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><label><input style="width:auto;margin:0 8px 20px 0" name="remember" type="checkbox" value="yes" checked>Keep me signed in for 30 days</label><button>Sign in</button></form></html>'
 def interactive_priority():
     try:
         with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as client:
@@ -29,6 +29,7 @@ def interactive_priority():
     except OSError:pass
 
 import hal_shared
+from hal_branding import render as render_ai_name
 hal_shared.setup()
 hal_shared.start_worker()
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -172,9 +173,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (BrokenPipeError,ConnectionResetError):return
         except OSError:self.send_error(503,'Native llama.cpp service unavailable')
     def login_page(self,failed=False,llama=False):
-        body=LOGIN_PAGE
+        body=render_ai_name(LOGIN_PAGE.decode()).encode()
         if llama:body=body.replace(b'<form action="/login" method="post">',b'<form action="/login" method="post"><input type="hidden" name="next" value="llama">',1)
-        if failed:body=body.replace(b'<form ',b'<p role="alert">Sign-in failed. Check your HAL username and password.</p><form ',1)
+        if failed:body=body.replace(b'<form ',b'<p role="alert">Sign-in failed. Check your username and password.</p><form ',1)
         self.send_response(200 if not failed else 401)
         self.send_header('Content-Type','text/html; charset=utf-8');self.send_header('Cache-Control','no-store')
         self.send_header('X-Content-Type-Options','nosniff')

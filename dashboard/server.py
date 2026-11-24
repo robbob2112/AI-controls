@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.extend((str(Path(__file__).resolve().parent.parent/'libexec'),'/usr/local/libexec'))
+from hal_branding import render as render_ai_name
 import storage_health
 import chart_catalog
 import case_controls
@@ -268,7 +272,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except ValueError:
                 self.send_error(400,'Invalid Host header');return
             host='['+hostname+']' if ':' in hostname else hostname
-            body=body.decode('utf-8').replace('{{HAL_HOST}}',html.escape(host,quote=True)).encode('utf-8')
+            body=render_ai_name(body.decode('utf-8').replace('{{HAL_HOST}}',html.escape(host,quote=True))).encode('utf-8')
         self.send_response(200); self.send_header('Content-Type',{'html':'text/html; charset=utf-8','js':'text/javascript; charset=utf-8','css':'text/css; charset=utf-8','txt':'text/plain; charset=utf-8'}[p.suffix[1:]])
         if url.path=='/':self.send_header('Cache-Control','no-store')
         self.send_header('Content-Length',str(len(body))); self.send_header('X-Content-Type-Options','nosniff'); self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'"); self.end_headers(); self.wfile.write(body)
