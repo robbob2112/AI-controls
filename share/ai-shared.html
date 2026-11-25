@@ -1281,6 +1281,20 @@
         }
       }
 
+      function replaceWithDisclosureState(container, ...nodes) {
+        const previous = new Map(
+          Array.from(container.querySelectorAll("details[data-disclosure]"), (details) => [
+            details.dataset.disclosure,
+            details.open,
+          ]),
+        );
+        container.replaceChildren(...nodes);
+        for (const details of container.querySelectorAll("details[data-disclosure]")) {
+          const key = details.dataset.disclosure;
+          if (previous.has(key)) details.open = previous.get(key);
+        }
+      }
+
       function renderMessages(messages) {
         const scroll = $("scroll"),
           atEnd = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 90;
@@ -1433,6 +1447,9 @@
               article.append(panel);
             }
           }
+          for (const [index, details] of Array.from(article.querySelectorAll("details")).entries()) {
+            details.dataset.disclosure = message.id + ":" + index;
+          }
           return article;
         });
         if (!nodes.length) {
@@ -1443,7 +1460,7 @@
             : "Create a conversation or choose one from the list.";
           nodes.push(empty);
         }
-        $("history").replaceChildren(...nodes);
+        replaceWithDisclosureState($("history"), ...nodes);
         if (atEnd || !signature) scroll.scrollTop = scroll.scrollHeight;
       }
       async function refresh(force = false) {
@@ -2344,7 +2361,7 @@
         labDeployments = [],
       ) {
         const dock = $("reviewDock");
-        dock.replaceChildren();
+        const cards = document.createDocumentFragment();
         dock.hidden =
           creating || (!repository && records.length === 0 && labDeployments.length === 0);
         const awaiting =
@@ -2377,7 +2394,7 @@
               : "No commit approval pending.");
           card.append(heading, status, policy);
           if (repositoryNotice) card.append(dismissNoticeButton("repository", repositoryNotice));
-          dock.append(card);
+          cards.append(card);
         }
         for (const review of records) {
           const card = document.createElement("section");
@@ -2434,9 +2451,10 @@
             review.state === "pending" ? "Show changes to review" : "Show committed diff";
           patch.textContent = review.diff;
           details.append(summary, patch);
+          details.dataset.disclosure = "review:" + review.id;
           card.append(title, message, actions, details);
           if (review.state === "pushed") card.append(dismissNoticeButton("approval", review.id));
-          dock.append(card);
+          cards.append(card);
         }
         for (const deployment of labDeployments) {
           const card = document.createElement("section");
@@ -2462,6 +2480,7 @@
                 ? "\n\n" + deployment.error
                 : "");
           detail.append(summary, pre);
+          detail.dataset.disclosure = "deployment:" + deployment.id;
           card.append(title, info, detail);
           if (deployment.state === "pending") {
             const button = document.createElement("button");
@@ -2486,8 +2505,9 @@
             };
             card.append(button);
           }
-          dock.append(card);
+          cards.append(card);
         }
+        replaceWithDisclosureState(dock, cards);
       }
       async function loadReviews(force = false) {
         const id = current;
