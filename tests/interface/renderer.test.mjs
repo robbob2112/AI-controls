@@ -49,3 +49,40 @@ test("chat notices have no Dismiss controls", () => {
   assert.match(renderer, /id="status" role="alert"/);
   assert.match(renderer, /Approve commit & push/);
 });
+
+test("normal chat omits routine tool records and retains errors", () => {
+  const start = renderer.indexOf("function isVisibleChatMessage(");
+  const end = renderer.indexOf("function renderMessages(", start);
+  assert.ok(start >= 0 && end > start);
+  assert.match(renderer, /messages\.filter\(isVisibleChatMessage\)\.map/);
+  const visible = new Script(renderer.slice(start, end) + "\nisVisibleChatMessage")
+    .runInNewContext();
+  const roles = ["user", "assistant tool call", "tool request", "tool result", "reasoning",
+    "error", "assistant"];
+  assert.deepEqual(roles.filter((role) => visible({ role })), ["user", "error", "assistant"]);
+});
+
+test("repository status stays hidden until a commit needs review", () => {
+  const start = renderer.indexOf("function renderReviews(");
+  const end = renderer.indexOf("async function loadReviews(", start);
+  assert.ok(start >= 0 && end > start);
+  const element = () => ({ append() {}, hidden: false, dataset: {} });
+  const nodes = { reviewDock: element(), reviewShortcut: element() };
+  const draw = new Script(renderer.slice(start, end) + "\nrenderReviews").runInNewContext({
+    $: (id) => nodes[id],
+    document: { createDocumentFragment: element, createElement: element },
+    replaceWithDisclosureState() {},
+    creating: false,
+    active: false,
+    busy: false,
+    current: "chat",
+  });
+  const repository = { dirty: false, head: "abcdef12", pending_approvals: [] };
+  draw([], repository);
+  assert.equal(nodes.reviewDock.hidden, true);
+  assert.equal(nodes.reviewShortcut.hidden, true);
+  draw([], { ...repository, dirty: true });
+  assert.equal(nodes.reviewDock.hidden, true);
+  draw([{ id: "review", state: "pending", diff: "" }], repository);
+  assert.equal(nodes.reviewDock.hidden, false);
+});

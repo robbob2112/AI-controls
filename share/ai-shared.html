@@ -1287,21 +1287,16 @@
         }
       }
 
+      function isVisibleChatMessage(message) {
+        return !["assistant tool call", "tool request", "tool result", "reasoning"].includes(
+          message.role,
+        );
+      }
+
       function renderMessages(messages) {
         const scroll = $("scroll"),
           atEnd = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 90;
-        const approved = new Set(
-          messages
-            .filter((m) => m.role === "approval result")
-            .map((m) => {
-              try {
-                return JSON.parse(m.body).id;
-              } catch {
-                return "";
-              }
-            }),
-        );
-        const nodes = messages.map((message) => {
+        const nodes = messages.filter(isVisibleChatMessage).map((message) => {
           const article = document.createElement("article");
           article.dataset.role = message.role;
           article.dataset.messageId = message.id;
@@ -1395,48 +1390,6 @@
             renderCodeBody(message.body, article);
           else article.append(pre);
           if (message.attachments?.length) renderMessageAttachments(message.attachments, article);
-          if (message.role === "tool result") {
-            let approval;
-            try {
-              approval = JSON.parse(message.body).result;
-            } catch {}
-            if (approval?.approval_id && !approved.has(approval.approval_id)) {
-              const panel = document.createElement("details");
-              panel.className = "approval";
-              panel.open = true;
-              const summary = document.createElement("summary");
-              summary.textContent = "Review commit: " + approval.message;
-              const patch = document.createElement("pre");
-              patch.textContent = approval.diff;
-              panel.append(summary, patch);
-              for (const push of [false, true]) {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.textContent = push ? "Approve commit & push" : "Approve commit only";
-                button.onclick = async () => {
-                  button.disabled = true;
-                  try {
-                    await api({
-                      op: "approve_commit",
-                      id: current,
-                      approval_id: approval.approval_id,
-                      push,
-                    });
-                    $("status").textContent = push
-                      ? "Approved commit pushed to the development branch."
-                      : "Approved commit created locally.";
-                  } catch (error) {
-                    messageError(error);
-                  } finally {
-                    button.disabled = false;
-                    await refresh(true);
-                  }
-                };
-                panel.append(button);
-              }
-              article.append(panel);
-            }
-          }
           for (const [index, details] of Array.from(article.querySelectorAll("details")).entries()) {
             details.dataset.disclosure = message.id + ":" + index;
           }
@@ -2329,6 +2282,9 @@
       ) {
         const dock = $("reviewDock");
         const cards = document.createDocumentFragment();
+        if (repository && !records.some((review) => ["pending", "committed"].includes(review.state))) {
+          repository = null;
+        }
         dock.hidden =
           creating || (!repository && records.length === 0 && labDeployments.length === 0);
         const awaiting =

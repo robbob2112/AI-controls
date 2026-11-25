@@ -5,3 +5,4 @@
 - Started public AI Controls versioning at 1.0. Increment the version in the same commit as each subsequent change published to GitHub main, including documentation changes. Increment the minor number by default (1.1, 1.2, and so on). Tag the published commit with the matching version prefixed by v and verify the private Gitea pull mirror has the updated main commit.
 - Preserve open and closed chat disclosures across refresh. Add a repeatable interface harness with full inline JavaScript parsing, a disclosure regression, and a deterministic Linux lab smoke test.
 - Remove Dismiss controls from chat status, notices and review cards while retaining alert text and approval actions. Add renderer regression coverage.
+- Keep routine tool records out of the chat transcript and suppress repository summaries without an approval. Use the review panel as the single source for current approval actions. Add regression coverage for errors, tool rows and review visibility.
