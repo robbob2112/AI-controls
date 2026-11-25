@@ -168,3 +168,10 @@ These are standing requirements for all product and price searches.
 
 1. Prefer PowerShell (`pwsh`) as the default command-line shell.
 2. Prefer terminal behavior that supports copying text by highlighting it.
+
+## HAL Coding Preferences
+
+1. When the user asks Codex for coding help, send the task to HAL and wait for his result. Review how much he completed and independently verify the behavior where possible. Accept a different implementation if it meets the requirements and passes the checks.
+2. When a verified defect suggests a reusable checklist item or coding preference, give HAL specific guidance and record it here. Keep the public source and private Gitea mirror in sync.
+3. Use an isolated branch for changes to existing projects. Grant HAL only the repository access needed for the task and preserve branch protection and explicit push approvals.
+4. Before changing an existing interface, reproduce the reported behavior in the live interface and identify the tracked source that serves it. Verify the same user-facing steps on the changed build and distinguish executable test results from source inspection.
