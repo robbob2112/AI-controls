@@ -175,3 +175,4 @@ These are standing requirements for all product and price searches.
 2. When a verified defect suggests a reusable checklist item or coding preference, give HAL specific guidance and record it here. Keep the public source and private Gitea mirror in sync.
 3. Use an isolated branch for changes to existing projects. Grant HAL only the repository access needed for the task and preserve branch protection and explicit push approvals.
 4. Before changing an existing interface, reproduce the reported behavior in the live interface and identify the tracked source that serves it. Verify the same user-facing steps on the changed build and distinguish executable test results from source inspection.
+5. Before marking a feature complete, check each requested visible behavior and report the results of tests actually run. Diagnostic logging alone does not replace a requested user control.
