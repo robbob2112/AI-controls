@@ -3,7 +3,7 @@
   ><head
     ><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{{AI_NAME}} · Model Control</title
-    ><script src="/llama/model-control.js?v=model-purpose-20261124" defer></script>
+    ><script src="/llama/model-control.js?v=external-catalogs-20261125" defer></script>
     <style>
       :root {
         color-scheme: dark;
@@ -135,7 +135,9 @@
             >Source
             <select id="source"
               ><option value="ollama">Ollama catalog</option
-              ><option value="hf">Hugging Face GGUF</option></select
+              ><option value="hf">Hugging Face GGUF</option>
+              <option value="modelscope">ModelScope GGUF</option>
+              <option value="github">GitHub release GGUF</option></select
             ></label
           >
           <label>Search <input id="query" maxlength="100" placeholder="e.g. Qwen or Gemma" /></label

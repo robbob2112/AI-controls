@@ -4,7 +4,8 @@ import shutil
 import datetime, hashlib, importlib.util, json, os, pwd, re, socket, socketserver, struct, subprocess, threading, time, urllib.request, uuid
 from pathlib import Path
 import ai_bench_tuning as tuning
-from ai_remote_models import lookup, model_card, model_purpose
+from ai_remote_models import lookup, model_card, model_purpose, variant_description
+import ai_external_models as external_sources
 from ai_model_catalog import (
     LITTLEBIT_MODEL as LITTLEBIT,
     NATIVE_PREFIX,
@@ -434,7 +435,7 @@ def terminate(data):
     return {"message": "Termination requested. The worker will archive partial results."}
 
 
-def pull_task(names):
+def pull_task(names, imports=None):
     global PULL
     history = []
     name = names[0]
@@ -485,19 +486,38 @@ def pull_task(names):
             try:
                 status = "starting"
                 PULL = dict(update, status=status)
-                with local(
-                    11449, "/api/pull", {"model": name, "stream": True}, timeout=180
-                ) as response:
-                    for line in response:
-                        item = json.loads(line)
-                        if item.get("error"):
-                            raise RuntimeError(item["error"])
-                        status = item["status"]
-                        PULL = dict(
-                            update,
-                            status="finishing" if status == "success" else status,
-                            **{k: item[k] for k in ("total", "completed") if k in item},
-                        )
+                if name in (imports or {}):
+                    if any(item["name"] == name for item in get(11449, "/api/tags")["models"]):
+                        raise ValueError("This model is already installed")
+                    asset = imports[name]
+
+                    def progress(phase, completed, total):
+                        global PULL
+                        PULL = dict(update, status=phase, total=total, completed=completed)
+
+                    external_sources.install(
+                        asset["source"],
+                        asset["family"],
+                        name,
+                        Path("/data/ollama/models"),
+                        local,
+                        progress,
+                    )
+                    status = "success"
+                else:
+                    with local(
+                        11449, "/api/pull", {"model": name, "stream": True}, timeout=180
+                    ) as response:
+                        for line in response:
+                            item = json.loads(line)
+                            if item.get("error"):
+                                raise RuntimeError(item["error"])
+                            status = item["status"]
+                            PULL = dict(
+                                update,
+                                status="finishing" if status == "success" else status,
+                                **{k: item[k] for k in ("total", "completed") if k in item},
+                            )
                 if status != "success":
                     raise RuntimeError("Ollama did not report a completed pull")
                 history.append(dict(model=name, status="success"))
@@ -600,6 +620,22 @@ def dispatch(data):
         return terminate(data)
     if operation == "model-delete":
         return delete_models(data)
+    if (
+        operation in ("model-card", "model-search")
+        and data.get("source") in external_sources.SOURCES
+    ):
+        source = data["source"]
+        family = data.get("family", "")
+        term = data.get("query", "")
+        if not isinstance(family, str) or not isinstance(term, str) or len(term) > 100:
+            raise ValueError("Invalid catalog search")
+        if operation == "model-card":
+            return {"description": external_sources.card(source, family)}
+        matches = external_sources.lookup(source, term, family, model_purpose)
+        for item in matches:
+            if not item.get("family"):
+                item["description"] = variant_description(item["label"])
+        return {"matches": matches}
     if operation == "model-card":
         return {"description": model_card(data)}
     if operation == "model-search":
@@ -616,10 +652,20 @@ def dispatch(data):
         ):
             raise ValueError("Choose 1 to 12 local model tags")
         names = list(dict.fromkeys(names))
+        imports = data.get("imports", {})
+        if not isinstance(imports, dict) or any(
+            name not in names
+            or not isinstance(asset, dict)
+            or asset.get("source") not in external_sources.SOURCES
+            or not isinstance(asset.get("family"), str)
+            or not external_sources.FAMILY.fullmatch(asset["family"])
+            for name, asset in imports.items()
+        ):
+            raise ValueError("Invalid catalog selection")
         if not PULL_LOCK.acquire(blocking=False):
             raise ValueError("A model pull is already in progress")
         PULL = {"status": "starting", "model": names[0], "count": len(names)}
-        threading.Thread(target=pull_task, args=(names,), daemon=True).start()
+        threading.Thread(target=pull_task, args=(names, imports), daemon=True).start()
         return {"message": "Model pull requested."}
     if operation != "state":
         raise ValueError("Unknown operation")

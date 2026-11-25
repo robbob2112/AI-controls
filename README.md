@@ -42,3 +42,9 @@ constraint matters. Keep service configuration and credentials out of source. Pr
 that preserve existing routes and file formats. Format Python with Black at 100 columns. Format
 JavaScript, CSS and HTML with Prettier at 100 columns and preserve HTML whitespace semantics.
 Run checks locally before pushing. This repository does not require GitHub CI.
+
+### Installed models and download sources
+
+AI Chat, Model Control, and Benchmark Control share one installed-model catalog. It reads the Ollama registry, registered llama.cpp presets, and the optional LittleBit service live. There is no second installed-model database to reconcile. An imported model is registered in Ollama and appears in the shared catalog when its capabilities can be detected.
+
+Model Control searches Ollama, Hugging Face GGUF, ModelScope GGUF, and GitHub release GGUF. For ModelScope and GitHub, you can enter a specific public repository as `owner/repository`. These sources import supported single-file GGUF assets into Ollama. Catalog discovery is separate from the installed inventory.

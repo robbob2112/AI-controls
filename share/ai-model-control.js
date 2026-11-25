@@ -264,7 +264,12 @@ el("install").onclick = async () => {
   submitting = true;
   renderChoices();
   try {
-    const result = await api({ op: "pull", models: [...selected.keys()] });
+    const imports = Object.fromEntries(
+      [...selected]
+        .filter(([, model]) => model.source_file)
+        .map(([name, model]) => [name, model.source_file]),
+    );
+    const result = await api({ op: "pull", models: [...selected.keys()], imports });
     message(result.message);
     pullBusy = true;
     await refresh();
