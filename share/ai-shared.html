@@ -846,7 +846,7 @@
         ><div id="composeHint" class="compose-hint">Enter to send · Shift+Enter for a new line</div
         ><div
           ><p id="status" role="alert"></p
-          ><button id="dismissStatus" type="button" hidden>Dismiss</button></div
+          ></div
         ></main
       ></div
     >
@@ -985,14 +985,6 @@
       let visibleMessages = [],
         modelMetadata = {},
         branchSource = "";
-      $("dismissStatus").onclick = () => {
-        $("status").textContent = "";
-        $("dismissStatus").hidden = true;
-      };
-      if (typeof MutationObserver !== "undefined")
-        new MutationObserver(() => {
-          $("dismissStatus").hidden = !$("status").textContent;
-        }).observe($("status"), { childList: true, subtree: true, characterData: true });
       let assistantInstructionsRevision = "";
       $("preferencesOpen").onclick = async () => {
         const status = $("assistantInstructionsStatus");
@@ -1329,8 +1321,6 @@
             copy.onclick = () => copyReply(message.body, copy);
             heading.append(copy);
           }
-          if (["notice", "error", "approval result"].includes(message.role))
-            heading.append(dismissNoticeButton("message", message.id));
           if (message.role === "assistant" && modelMetadata[message.id]) {
             const meta = modelMetadata[message.id],
               badge = document.createElement("span");
@@ -2319,28 +2309,6 @@
         reviewStamp = 0,
         reviewChat = "",
         reviewSignature = "";
-      function dismissNoticeButton(kind, id) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = "Dismiss";
-        button.title = "Clear this notice on your devices; saved history is kept";
-        const chat = current;
-        button.onclick = async () => {
-          button.disabled = true;
-          try {
-            await api({ op: "dismiss_notice", id: chat, kind, notice_id: id });
-            reviewStamp = 0;
-            reviewSignature = "";
-            await refresh(true);
-            await loadReviews(true);
-          } catch (error) {
-            messageError(error);
-          } finally {
-            button.disabled = false;
-          }
-        };
-        return button;
-      }
       $("restoreNotices").onclick = async () => {
         if (!current) return;
         try {
@@ -2357,7 +2325,6 @@
         records,
         repository = null,
         automatic = false,
-        repositoryNotice = null,
         labDeployments = [],
       ) {
         const dock = $("reviewDock");
@@ -2393,7 +2360,6 @@
               ? repository.pending_approvals.length + " commit review(s) pending."
               : "No commit approval pending.");
           card.append(heading, status, policy);
-          if (repositoryNotice) card.append(dismissNoticeButton("repository", repositoryNotice));
           cards.append(card);
         }
         for (const review of records) {
@@ -2453,7 +2419,6 @@
           details.append(summary, patch);
           details.dataset.disclosure = "review:" + review.id;
           card.append(title, message, actions, details);
-          if (review.state === "pushed") card.append(dismissNoticeButton("approval", review.id));
           cards.append(card);
         }
         for (const deployment of labDeployments) {
@@ -2537,7 +2502,6 @@
               result.approvals,
               result.repository_dismissed ? null : result.repository,
               result.auto_commit,
-              result.repository_notice_id,
               result.lab_deployments || [],
             );
             reviewSignature = sig;

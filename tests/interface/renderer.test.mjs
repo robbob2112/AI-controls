@@ -43,3 +43,9 @@ test("message and review redraws retain disclosure state", () => {
   restore(container, nextMessage);
   assert.equal(nextMessage.open, false);
 });
+
+test("chat notices have no Dismiss controls", () => {
+  assert.doesNotMatch(renderer, /dismissStatus|dismissNoticeButton|>\s*Dismiss\s*</);
+  assert.match(renderer, /id="status" role="alert"/);
+  assert.match(renderer, /Approve commit & push/);
+});
