@@ -1,4 +1,4 @@
-import hal_model_routing
+import ai_model_routing
 
 """Bounded model working context, durable progress and streamed Ollama replies.
 
@@ -7,7 +7,7 @@ is sent to the model, and the model can retrieve omitted history explicitly.
 """
 import copy, json, time, urllib.request
 
-from hal_model_catalog import LITTLEBIT_MODEL, NATIVE_PREFIX, installed_models
+from ai_model_catalog import LITTLEBIT_MODEL, NATIVE_PREFIX, installed_models
 
 
 def chat_models():
@@ -231,7 +231,7 @@ def stream_chat(
     littlebit = payload.get("model") == LITTLEBIT_MODEL
     if littlebit and affinity != "auto":
         raise ValueError("GPU affinity: LittleBit runs on CPU. Select Auto.")
-    port = hal_model_routing.GPU_AFFINITIES[affinity]
+    port = ai_model_routing.GPU_AFFINITIES[affinity]
     if port:
         payload["options"] = dict(payload.get("options", {}), num_gpu=999)
         payload["keep_alive"] = "60s"
@@ -294,7 +294,7 @@ def stream_chat(
         ):
             raise ValueError(
                 "GPU affinity: HAL could not verify the model on "
-                + hal_model_routing.GPU_LABELS[affinity]
+                + ai_model_routing.GPU_LABELS[affinity]
                 + "."
             )
     return {k: v for k, v in message.items() if v or k in ("role", "content")}

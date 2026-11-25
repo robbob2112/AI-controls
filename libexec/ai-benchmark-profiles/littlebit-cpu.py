@@ -16,7 +16,7 @@ fixed = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixed)
 NAME = "littlebit-qwen3:8b-0.55bpw"
 STOP = None
-tuning = fixed.hal_bench_tuning
+tuning = fixed.ai_bench_tuning
 UNIT = tuning.LITTLEBIT_UNIT
 PORT = tuning.LITTLEBIT_PORT
 DIGEST = "5b087e4c79c23697355014fdd00b083c91d0c731ddd80a16d6affbe156f17179"
@@ -52,7 +52,7 @@ def start_inference(threads, quota, cpus, timeout):
             f"--setenv=HAL_LITTLEBIT_PORT={PORT}",
             f"--setenv=HAL_LITTLEBIT_THREADS={threads}",
             "/opt/hal-littlebit-venv/bin/python",
-            "/usr/local/libexec/hal-littlebit-server.py",
+            "/usr/local/libexec/ai-littlebit-server.py",
         ],
         check=True,
         timeout=15,

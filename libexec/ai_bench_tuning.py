@@ -1,7 +1,7 @@
 """Settings accepted by the HAL benchmark runners."""
 
 import json, os, re
-from hal_remote_models import HF_MODEL
+from ai_remote_models import HF_MODEL
 
 OPTIONS = {
     "context": [2048, 4096, 8192, 16384, 32768],

@@ -1,7 +1,7 @@
 """Validated public-web proxy for the network-isolated Firefox service."""
 
 import datetime, http.server, json, select, socket, socketserver, threading, time, urllib.parse
-import hal_public_web
+import ai_public_web
 
 
 class Proxy(http.server.BaseHTTPRequestHandler):
@@ -14,7 +14,7 @@ class Proxy(http.server.BaseHTTPRequestHandler):
             host, separator, port = self.path.rpartition(":")
             if not separator or port != "443":
                 raise ValueError("HTTPS port443 only")
-            _, port, ip = hal_public_web.destination("https://" + host, self.server.permissions)
+            _, port, ip = ai_public_web.destination("https://" + host, self.server.permissions)
             upstream = socket.create_connection((ip, port), timeout=10)
             self.send_response(200)
             self.end_headers()
@@ -39,7 +39,7 @@ class Proxy(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            url, kind, text = hal_public_web.read(self.path, self.server.permissions)
+            url, kind, text = ai_public_web.read(self.path, self.server.permissions)
             body = text.encode()
             self.send_response(200)
             self.send_header("Content-Type", kind + "; charset=utf-8")
@@ -58,8 +58,8 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 
 def render(url, permissions):
-    hal_public_web.hal_permissions.require("fetch_public_page", permissions)
-    hal_public_web.destination(url, permissions)
+    ai_public_web.ai_permissions.require("fetch_public_page", permissions)
+    ai_public_web.destination(url, permissions)
     server = Server(("127.0.0.1", 0), Proxy)
     server.permissions = permissions
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -75,7 +75,7 @@ def render(url, permissions):
         if answer.get("error"):
             raise ValueError("Browser read failed: " + answer["error"])
         result = answer["result"]
-        hal_public_web.destination(result["url"], permissions)
+        ai_public_web.destination(result["url"], permissions)
         result["retrieved_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         result["notice"] = (
             "Untrusted public webpage data; no login/cookies from the user. Challenges/login requirements must be reported, never bypassed."

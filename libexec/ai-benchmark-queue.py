@@ -13,9 +13,9 @@ import signal
 import subprocess
 import time
 import uuid
-import hal_bench_tuning
-from hal_model_catalog import NATIVE_PREFIX
-from hal_benchmark_gpu_clear import clear_gpu
+import ai_bench_tuning
+from ai_model_catalog import NATIVE_PREFIX
+from ai_benchmark_gpu_clear import clear_gpu
 
 ROOT = Path("/var/lib/hal-benchmark-queue")
 PUBLIC = Path("/var/lib/hal-benchmarks")
@@ -23,7 +23,7 @@ STATE = Path("/var/lib/hal-monitor/benchmark-state.json")
 SENSORS = Path("/run/hal-cooling/status.json")
 COOLDOWN = Path("/run/hal-cooling/benchmark-cooldown")
 REAR = Path("/run/hal-cooling/benchmark-rear.json")
-PROFILES = Path("/usr/local/libexec/hal-benchmark-profiles")
+PROFILES = Path("/usr/local/libexec/ai-benchmark-profiles")
 UNIT = "hal-queue-radeon-infer.service"
 MODELS = frozenset(("deepseek-r1:32b", "qwen3.5:35b-a3b", "gemma4:26b", "glm-4.7-flash:q4_K_M"))
 NAME = re.compile(r"(\d+)(?:-[A-Za-z0-9_.-]+)?\.json\Z")
@@ -121,7 +121,7 @@ def validate(spec):
         raise ValueError("label and notes must be text")
     if kind == "benchmark":
         profile = spec.get("profile")
-        hal_bench_tuning.validate(spec.get("tuning", {}), profile, spec.get("gpu", "r9700"))
+        ai_bench_tuning.validate(spec.get("tuning", {}), profile, spec.get("gpu", "r9700"))
         common = common | {"tuning", "model_digest", "parallel"}
         if type(spec.get("parallel", False)) is not bool:
             raise ValueError("Invalid parallel benchmark setting")
@@ -132,7 +132,7 @@ def validate(spec):
             or not re.fullmatch("[0-9a-f]{64}", spec["model_digest"])
         ):
             raise ValueError("Invalid model digest")
-        if not hal_bench_tuning.valid_model(spec.get("model")):
+        if not ai_bench_tuning.valid_model(spec.get("model")):
             raise ValueError("Select a supported model")
         native = spec["model"].startswith(NATIVE_PREFIX)
         if native and profile != "b65-sycl-hours":
@@ -384,7 +384,7 @@ class Queue:
             unit = "hal-queue-b65-infer.service"
             env.update(HAL_BENCH_PORT="11453", HAL_BENCH_UNIT=unit)
         if gpu == "cpu":
-            unit = hal_bench_tuning.LITTLEBIT_UNIT
+            unit = ai_bench_tuning.LITTLEBIT_UNIT
         with (folder / "runner.log").open("w") as log:
             process = subprocess.Popen(
                 ["/usr/bin/python3", str(PROFILES / (spec["profile"] + ".py")), str(clean)],

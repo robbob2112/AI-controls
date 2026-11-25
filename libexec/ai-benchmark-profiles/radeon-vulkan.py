@@ -3,8 +3,8 @@
 import concurrent.futures, datetime, json, os, pathlib, re, signal, sqlite3, statistics, subprocess as sp, sys, threading, time, urllib.request
 
 sys.path.insert(0, "/usr/local/libexec")
-import hal_bench_tuning
-from hal_cooling_policy import gpu_duty
+import ai_bench_tuning
+from ai_cooling_policy import gpu_duty
 
 ROOT = pathlib.Path(os.environ["HAL_QUEUE_EVIDENCE"])
 D = pathlib.Path("/scratch/b65-model-testing/expanded-20261113")
@@ -18,7 +18,7 @@ MBPP = json.loads((D / "mbpp20.json").read_text())
 GSM = json.loads((D / "gsm8k50.json").read_text())
 TOOLS = json.loads((D / "hal-tool20.json").read_text())
 REPORT = {
-    "id": "b65-matched-hours-20261122",
+    "id": "r9700-hours-20261122",
     "recorded_at": datetime.datetime.now().astimezone().isoformat(),
     "campaign": "Two independent-GPU model pairs, one hour each",
     "rows": [],
@@ -71,8 +71,8 @@ def publish(stage=None):
 
 def api(gpu, path, body=None, timeout=30):
     req = urllib.request.Request(
-        f"http://127.0.0.1:{os.environ.get('HAL_BENCH_PORT','11445')}" + path,
-        None if body is None else json.dumps(hal_bench_tuning.ollama_body(body)).encode(),
+        f"http://127.0.0.1:{11445}" + path,
+        None if body is None else json.dumps(ai_bench_tuning.ollama_body(body)).encode(),
         {"Content-Type": "application/json"},
     )
     return json.load(urllib.request.urlopen(req, timeout=timeout))
@@ -265,7 +265,7 @@ def model_worker(phase, gpu, model, deadline, row):
                 REPORT["accuracy"].append(
                     {
                         "model": model,
-                        "gpu": "Intel Arc Pro B65-0",
+                        "gpu": "Radeon AI PRO R9700",
                         "benchmark": {
                             "coding": "MBPP20",
                             "reasoning": "GSM8K50",
@@ -305,20 +305,17 @@ def safe_monitor(*args):
 
 import quality
 
-PCI = "0000:04:00.0"
-RADEON = "0000:09:00.0"
-SPLIT = False
-TARGET = "Intel Arc Pro B65-0"
+PCI = "0000:09:00.0"
 RUNS = [(1, 0, PAIRS[1][0]), (0, 1, PAIRS[0][1]), (1, 1, PAIRS[1][1]), (0, 0, PAIRS[0][0])]
 REPORT.update(
     campaign="R9700 single-GPU matched one-hour runs",
     models=[r[2] for r in RUNS],
-    hardware={"GPU": f"Intel Arc Pro B65-0 PCI {PCI}"},
+    hardware={"GPU": f"Radeon AI PRO R9700 PCI {PCI}"},
     notes=[
-        "B65-only Vulkan ICD and RADV_DEBUG=nocompute. Default Vulkan hit a compute timeout and recovered via GPU reset; a 29/29-offloaded isolated preflight passed with the workaround.",
+        "Radeon-only Vulkan ICD and RADV_DEBUG=nocompute. Default Vulkan hit a compute timeout and recovered via GPU reset; a 29/29-offloaded isolated preflight passed with the workaround.",
         "One main request stream per model for 3600 seconds after verified load. Fixture order/offset, seed, sampling, context and scoring are from the previous paired campaign. Other GPU does not assist. Earlier B65 tests ran two simultaneous models; shared host load and driver workaround differ.",
         "Rate, mean_rate and peak_rate come from completed 512-token speed samples. Load time includes an initial one-token readiness request. Peak host RAM is the service cgroup high-water mark, including charged file cache. VRAM residency is separate. TTFT was not measured.",
-        "B65 GPU fan stays firmware controlled. B65 firmware manages its temperature limit. Above 75°C on core/hotspot or VRAM, the chassis policy requests 100% front and 50% rear. Fan RPM, cooling health and kernel errors are monitored through warmup and workload.",
+        "Radeon GPU fan stays firmware controlled. Radeon firmware manages its temperature limit. Above 75°C on core/hotspot or VRAM, the chassis policy requests 100% front and 50% rear. Fan RPM, cooling health and kernel errors are monitored through warmup and workload.",
     ],
 )
 
@@ -334,24 +331,11 @@ def monitor(since, row):
         raise RuntimeError("Cooling readings or control unhealthy")
     if not 0 < state["temperatures"]["cpu_c"] < 90:
         raise RuntimeError("CPU thermal stop")
-    gpu = next(g for g in state["temperatures"]["gpus"] if g["pci"] == PCI and g["driver"] == "xe")
-    if not 0 < gpu["pkg_c"] < 85 or not 0 < gpu["vram_c"] < 95 or not gpu["rpm"]:
-        raise RuntimeError("B65 sensor or firmware fan watchdog stop: " + str(gpu))
-    if SPLIT:
-        radeon = next(
-            (
-                g
-                for g in state["temperatures"]["gpus"]
-                if g["pci"] == RADEON and g["driver"] == "amdgpu"
-            ),
-            {},
-        )
-        if (
-            not 0 < (radeon.get("pkg_c") or 0) < 130
-            or not 0 < (radeon.get("vram_c") or 0) < 130
-            or not radeon.get("rpm")
-        ):
-            raise RuntimeError("Radeon sensor or firmware fan watchdog stop: " + str(radeon))
+    gpu = next(
+        g for g in state["temperatures"]["gpus"] if g["pci"] == PCI and g["driver"] == "amdgpu"
+    )
+    if not 0 < gpu["pkg_c"] < 130 or not 0 < gpu["vram_c"] < 130 or not gpu["rpm"]:
+        raise RuntimeError("Radeon sensor or firmware fan watchdog stop: " + str(gpu))
     expected = (
         {n: 100 for n in ("CHA_FAN3", "CHA_FAN4", "CHA_FAN5")} if state["policy"]["gpu_hot"] else {}
     )
@@ -359,6 +343,10 @@ def monitor(since, row):
         expected["CHA_FAN1"] = 50
     if state["policy"]["mode"] == "benchmark-cooldown":
         expected["CHA_FAN1"] = 100
+    if REAR_DUTY is not None:
+        if state["policy"].get("benchmark_rear_percent") != REAR_DUTY:
+            raise RuntimeError("Rear benchmark duty is no longer active")
+        expected["CHA_FAN1"] = REAR_DUTY
     if not all(
         state["fans"][n]["applied"] and all(p["Duty"] == duty for p in state["fans"][n]["curve"])
         for n, duty in expected.items()
@@ -377,10 +365,10 @@ def monitor(since, row):
     if any(
         re.search(r"(timeout|page fault|GPU reset|wedged)", l, re.I)
         for l in log.splitlines()
-        if ("xe" in l and PCI in l) or (SPLIT and "amdgpu" in l and RADEON in l)
+        if "amdgpu" in l and PCI in l
     ):
         (ROOT / "kernel-stop.log").write_text(log)
-        raise RuntimeError("GPU driver fault, timeout or reset; see kernel-stop.log")
+        raise RuntimeError("Radeon driver fault, timeout or reset")
     with (ROOT / "physical-cooling.jsonl").open("a") as f:
         f.write(json.dumps(state) + "\n")
     return gpu
@@ -415,24 +403,9 @@ def load(unit, model):
     log = sp.check_output(
         ["journalctl", "_SYSTEMD_INVOCATION_ID=" + invocation, "--no-pager", "-o", "cat"], text=True
     )
-    if SPLIT:
-        (ROOT / "ollama-load.log").write_text(log)
     lines = [l for l in log.splitlines() if "inference compute" in l]
-    expected = {PCI, RADEON} if SPLIT else {PCI}
-    observed = set(re.findall(r"pci_id=([0-9a-f:.]+)", "\n".join(lines)))
-    if observed != expected:
-        raise RuntimeError(
-            f"Unexpected GPU visibility: expected {sorted(expected)}, found {sorted(observed)}"
-        )
-    if SPLIT:
-        weights = re.findall(
-            r"load_tensors:\s+(Vulkan[0-9]+) model buffer size\s*=\s*([0-9.]+) MiB", log
-        )
-        devices = {device for device, size in weights if float(size) > 0}
-        if len(devices) != 2:
-            raise RuntimeError(
-                "Could not verify that both GPUs hold model weights; see Ollama load log"
-            )
+    if set(re.findall(r"pci_id=([0-9a-f:.]+)", "\n".join(lines))) != {PCI}:
+        raise RuntimeError("Unexpected GPU visibility")
     if loaded["size_vram"] < loaded["size"] * 0.98:
         raise RuntimeError("GPU residency check failed")
     offloads = re.findall(r"offloaded (\d+)/(\d+) layers to GPU", log)
@@ -458,11 +431,11 @@ def run():
         if STOP.is_set():
             break
         row = dict(
-            id=f"b65-matched-hours-20261122-{index+1}",
+            id=f"r9700-hours-20261122-{index+1}",
             model=model,
-            gpu=TARGET,
+            gpu="Radeon AI PRO R9700",
             backend="Ollama 0.40.13 / Vulkan",
-            campaign="b65-matched-hours-20261122",
+            campaign="r9700-hours-20261122",
             streams=1,
             rate=None,
             tokens=0,
@@ -471,13 +444,13 @@ def run():
             completed_requests=0,
             coverage={},
             errors=[],
-            settings="One hour; single B65; context 8192; 8 host threads; seed 42; original fixture order, caps and grading.",
+            settings=f"{DURATION} seconds; single Radeon; context 8192; 8 host threads; seed 42; original fixtures and grading.",
         )
         REPORT["rows"].append(row)
         REPORT["phase"] = index + 1
-        unit = os.environ.get("HAL_BENCH_UNIT", "hal-queue-radeon-infer.service")
+        unit = "hal-queue-radeon-infer.service"
         env = {
-            "OLLAMA_HOST": "127.0.0.1:" + os.environ.get("HAL_BENCH_PORT", "11445"),
+            "OLLAMA_HOST": "127.0.0.1:11445",
             "OLLAMA_MODELS": "/data/ollama/models",
             "OLLAMA_NO_CLOUD": "1",
             "OLLAMA_NUM_PARALLEL": "1",
@@ -486,7 +459,8 @@ def run():
             "OLLAMA_VULKAN": "1",
             "ROCR_VISIBLE_DEVICES": "-1",
             "HIP_VISIBLE_DEVICES": "-1",
-            "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.x86_64.json",
+            "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/radeon_icd.x86_64.json",
+            "RADV_DEBUG": "nocompute",
         }
         props = [
             "User=ollama",
@@ -502,25 +476,17 @@ def run():
             "TimeoutStopSec=10",
             "LimitCORE=0",
         ]
-        if SPLIT:
-            env["VK_DRIVER_FILES"] += ":/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
-            env["OLLAMA_SCHED_SPREAD"] = "true"
-            env["OLLAMA_DEBUG"] = "1"
-            if hal_bench_tuning.settings().get("radeon_compute", "safe") == "safe":
-                env["RADV_DEBUG"] = "nocompute"
-            props.append(f"DeviceAllow=/dev/dri/by-path/pci-{RADEON}-render rw")
-            row["settings"] = "Timed single stream with the model split across both Vulkan GPUs."
         since = int(time.time())
         baseline = monitor(since, row)
         row["starting_temperatures_c"] = {k: baseline[k] for k in ("pkg_c", "vram_c")}
-        publish("Loading " + model + " on " + TARGET)
+        publish("Loading " + model + " on Radeon")
         sp.run(
             [
                 "systemd-run",
                 "--unit=" + unit,
                 "--collect",
                 *[v for p in props for v in ("-p", p)],
-                *["--setenv=" + k + "=" + v for k, v in hal_bench_tuning.ollama_env(env).items()],
+                *["--setenv=" + k + "=" + v for k, v in ai_bench_tuning.ollama_env(env).items()],
                 "/usr/bin/ollama",
                 "serve",
             ],
@@ -547,9 +513,7 @@ def run():
                     row.update(residency=loaded, load_seconds=seconds, status="running")
                     row["measurement_started_at"] = datetime.datetime.now().astimezone().isoformat()
                     deadline = time.monotonic() + DURATION
-                    publish(
-                        "Running " + model + " on " + TARGET + " for " + str(DURATION) + " seconds"
-                    )
+                    publish("Running " + model + " on Radeon")
                     future = pool.submit(guarded_worker, index, slot, model, deadline, row)
                     while not future.done() and not STOP.wait(1):
                         monitor(since, row)
@@ -579,20 +543,14 @@ def run():
 
 if __name__ == "__main__":
     specification = json.loads(pathlib.Path(sys.argv[1]).read_text())
-    SPLIT = specification["profile"] == "dual-vulkan-hours"
-    if SPLIT:
-        TARGET = "Radeon R9700 + Intel Arc Pro B65-0"
-        REPORT.update(
-            campaign="Dual-GPU split · Vulkan",
-            hardware={"GPUs": TARGET},
-            notes=[
-                "Timed single-stream workload splits model weights across both GPUs. Both devices are monitored for fan, sensor and driver faults."
-            ],
-        )
     DURATION = specification["duration_seconds"]
+    REAR_DUTY = specification.get("rear_percent")
     model = specification["model"]
     RUNS = [next((item for item in RUNS if item[2] == model), (0, 0, model))]
     REPORT["models"] = [model]
+    REPORT["campaign"] = "HAL benchmark queue: " + model
+    REPORT["notes"] = [note for note in REPORT["notes"] if "3600 seconds" not in note]
+    REPORT["notes"].append(f"{DURATION} seconds after verified load.")
     try:
         run()
     except Exception as error:

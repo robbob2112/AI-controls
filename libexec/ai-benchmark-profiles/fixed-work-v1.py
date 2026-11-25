@@ -16,7 +16,7 @@ import time
 import urllib.request
 
 sys.path.insert(0, "/usr/local/libexec")
-import hal_bench_tuning
+import ai_bench_tuning
 
 PROFILE = Path(__file__).with_name("radeon-vulkan.py")
 GPU = {
@@ -62,7 +62,7 @@ def streamed_speed(model, prompt, remaining, opener=urllib.request.urlopen):
     }
     req = urllib.request.Request(
         "http://127.0.0.1:" + os.environ.get("HAL_BENCH_PORT", "11445") + "/api/chat",
-        json.dumps(hal_bench_tuning.ollama_body(payload)).encode(),
+        json.dumps(ai_bench_tuning.ollama_body(payload)).encode(),
         {"Content-Type": "application/json"},
     )
     started = time.monotonic()
@@ -452,7 +452,7 @@ def main(spec, root):
                 "--unit=" + UNIT,
                 "--collect",
                 *[v for p in props for v in ("-p", p)],
-                *["--setenv=" + k + "=" + v for k, v in hal_bench_tuning.ollama_env(env).items()],
+                *["--setenv=" + k + "=" + v for k, v in ai_bench_tuning.ollama_env(env).items()],
                 "/usr/bin/ollama",
                 "serve",
             ],

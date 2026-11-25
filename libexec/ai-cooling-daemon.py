@@ -6,7 +6,7 @@ from pathlib import Path
 One PID owns GPU PWM, the BMC thermal curves, and both compatibility sockets.
 The one-second sensor/governor thread never waits for the BMC network thread.
 GPU register/RPM handling is reused from the already validated B65 library.
-Configuration and pure thermal decisions live in hal_cooling_policy.py.
+Configuration and pure thermal decisions live in ai_cooling_policy.py.
 """
 import grp
 import importlib.util
@@ -21,12 +21,12 @@ import subprocess
 import sys
 import threading
 import time
-from hal_bmc_fan_api import BMC
-from hal_cooling_transport import CoolingTransport
-from hal_cooling_policy import SAMPLE_SECONDS, CHASSIS_ZONES, FAN_NAMES, decide, gpu_duty
+from ai_bmc_fan_api import BMC
+from ai_cooling_transport import CoolingTransport
+from ai_cooling_policy import SAMPLE_SECONDS, CHASSIS_ZONES, FAN_NAMES, decide, gpu_duty
 
 spec = importlib.util.spec_from_file_location(
-    "gpu_hardware", "/usr/local/libexec/hal-gpu-fan-helper.py"
+    "gpu_hardware", "/usr/local/libexec/ai-gpu-fan-helper.py"
 )
 gpu = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gpu)  # Its standalone main is not run.

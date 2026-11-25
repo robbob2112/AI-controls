@@ -1,12 +1,12 @@
-from hal_branding import ai_name, render as render_ai_name
-import hal_public_web
-import hal_model_routing, hal_chat_branches, hal_failure_guard
-import hal_preferences
-import hal_notices
-import hal_chat_runtime
-from hal_model_catalog import text_only
-import hal_chat_titles
-import hal_android, hal_android_proxy
+from ai_branding import ai_name, render as render_ai_name
+import ai_public_web
+import ai_model_routing, ai_chat_branches, ai_failure_guard
+import ai_preferences
+import ai_notices
+import ai_chat_runtime
+from ai_model_catalog import text_only
+import ai_chat_titles
+import ai_android, ai_android_proxy
 
 """HAL's authenticated, server-authoritative conversation history.
 
@@ -25,14 +25,14 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import closing
-import hal_chat_control
-import hal_attachments
-import hal_steering
-import hal_lab_proxy
-import hal_permissions
-import hal_workspace_actions
+import ai_chat_control
+import ai_attachments
+import ai_steering
+import ai_lab_proxy
+import ai_permissions
+import ai_workspace_actions
 
-CURRENT_PERMISSIONS = dict(hal_permissions.LEGACY)
+CURRENT_PERMISSIONS = dict(ai_permissions.LEGACY)
 TURN_ID = ""
 
 DB = "/var/lib/hal-gateway/shared.sqlite"
@@ -51,15 +51,15 @@ def db():
 def setup():
     with closing(db()) as c, c:
         c.execute("PRAGMA journal_mode=WAL")
-        hal_chat_control.setup(c)
-        hal_attachments.setup(c)
-        hal_permissions.setup(c)
-        hal_chat_runtime.setup(c)
-        hal_notices.setup(c)
-        hal_preferences.setup(c)
-        hal_model_routing.setup(c)
-        hal_chat_branches.setup(c)
-        hal_failure_guard.setup(c)
+        ai_chat_control.setup(c)
+        ai_attachments.setup(c)
+        ai_permissions.setup(c)
+        ai_chat_runtime.setup(c)
+        ai_notices.setup(c)
+        ai_preferences.setup(c)
+        ai_model_routing.setup(c)
+        ai_chat_branches.setup(c)
+        ai_failure_guard.setup(c)
         c.executescript(
             """
             CREATE TABLE IF NOT EXISTS chats(id TEXT PRIMARY KEY,name TEXT,model TEXT,workspace TEXT);
@@ -73,7 +73,7 @@ def setup():
             CREATE INDEX IF NOT EXISTS messages_chat_seq ON messages(chat,seq);
         """
         )
-        hal_steering.setup(c)
+        ai_steering.setup(c)
         columns = {r[1] for r in c.execute("PRAGMA table_info(messages)")}
         if "record" not in columns:
             c.execute("ALTER TABLE messages ADD COLUMN record TEXT")
@@ -87,7 +87,7 @@ def setup():
             c.execute(
                 "UPDATE turns SET state='interrupted',error=? WHERE id=?", (error, turn["id"])
             )
-        hal_steering.recover(c)
+        ai_steering.recover(c)
 
 
 def add(c, chat, role, body, mid=None, record=None):
@@ -263,8 +263,8 @@ def tool_schemas(coding):
                 {},
             ),
         ]
-    entries += hal_android.SCHEMAS + hal_preferences.SCHEMAS
-    entries = [entry for entry in entries if hal_permissions.allowed(entry[0], CURRENT_PERMISSIONS)]
+    entries += ai_android.SCHEMAS + ai_preferences.SCHEMAS
+    entries = [entry for entry in entries if ai_permissions.allowed(entry[0], CURRENT_PERMISSIONS)]
     return [
         dict(
             type="function",
@@ -326,7 +326,7 @@ def transcript_lines(c, chat, name):
         "SELECT id,role,body,created FROM messages WHERE chat=? AND role IN ('user','assistant','Codex') ORDER BY seq",
         (chat,),
     ):
-        if hal_notices.hidden(c, chat, "message", row["id"]):
+        if ai_notices.hidden(c, chat, "message", row["id"]):
             continue
         when = (
             datetime.datetime.fromtimestamp(row["created"], datetime.timezone.utc).isoformat(
@@ -337,7 +337,7 @@ def transcript_lines(c, chat, name):
         )
         yield TRANSCRIPT_ROLES[row["role"]] + (" · " + when if when else "") + "\n"
         yield row["body"] + "\n"
-        names = [a["name"] for a in hal_attachments.for_message(c, row["id"])]
+        names = [a["name"] for a in ai_attachments.for_message(c, row["id"])]
         if names:
             yield "Attachments: " + ", ".join(names) + "\n"
         yield "\n"
@@ -365,9 +365,9 @@ def download_transcript(h, c, chat):
 
 
 def api(h):
-    if hal_android_proxy.api(h):
+    if ai_android_proxy.api(h):
         return True
-    if hal_lab_proxy.api(h):
+    if ai_lab_proxy.api(h):
         return True
     path = urllib.parse.urlsplit(h.path)
     # No query string or alternate HTML URL may reopen browser-only history.
@@ -408,7 +408,7 @@ def api(h):
         return True
     if path.path in ("/llama/model-control", "/llama/model-control.js") and h.command == "GET":
         js = path.path.endswith(".js")
-        asset = "hal-model-control.js" if js else "hal-model-control.html"
+        asset = "ai-model-control.js" if js else "ai-model-control.html"
         send(
             h,
             (pathlib.Path("/usr/local/share") / asset).read_text(),
@@ -420,9 +420,9 @@ def api(h):
         and h.command == "GET"
     ):
         asset = (
-            "hal-benchmark-control.js"
+            "ai-benchmark-control.js"
             if path.path.endswith(".js")
-            else "hal-benchmark-control.html"
+            else "ai-benchmark-control.html"
         )
         kind = "application/javascript" if asset.endswith(".js") else "text/html; charset=utf-8"
         send(h, (pathlib.Path("/usr/local/share") / asset).read_text(), kind)
@@ -451,7 +451,7 @@ def api(h):
     if path.path in ("/llama", "/llama/", "/llama/index.html"):
         send(
             h,
-            pathlib.Path("/usr/local/share/hal-shared.html").read_text(),
+            pathlib.Path("/usr/local/share/ai-shared.html").read_text(),
             "text/html; charset=utf-8",
         )
         return True
@@ -478,7 +478,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
         try:
             query = urllib.parse.parse_qs(path.query)
             with closing(db()) as c:
-                hal_attachments.download(
+                ai_attachments.download(
                     h, c, query.get("id", [""])[0], query.get("preview", ["0"])[0] == "1"
                 )
         except ValueError as error:
@@ -492,7 +492,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
         return True
     if path.path == "/llama/chat-models" and h.command == "GET":
         try:
-            send(h, {"models": hal_chat_runtime.chat_models()})
+            send(h, {"models": ai_chat_runtime.chat_models()})
         except (OSError, ValueError):
             send(h, {"error": "Chat models unavailable"}, code=503)
         return True
@@ -503,8 +503,8 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     send(
                         h,
                         {
-                            "preferences": hal_preferences.listing(c),
-                            **hal_preferences.assistant_settings(c),
+                            "preferences": ai_preferences.listing(c),
+                            **ai_preferences.assistant_settings(c),
                         },
                     )
                 else:
@@ -517,7 +517,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     if not isinstance(data, dict):
                         raise ValueError("Expected an instructions object")
                     c.execute("BEGIN IMMEDIATE")
-                    saved = hal_preferences.save_assistant_settings(
+                    saved = ai_preferences.save_assistant_settings(
                         c, data.get("instructions"), data.get("revision")
                     )
                     c.commit()
@@ -532,7 +532,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                 row = c.execute("SELECT * FROM chats WHERE id=?", (chat,)).fetchone()
                 if not row:
                     raise ValueError("Conversation not found")
-                permissions = hal_permissions.get(c, chat)
+                permissions = ai_permissions.get(c, chat)
                 records = (
                     studio("approvals", workspace=row["workspace"], permissions=permissions)
                     if row["workspace"] and permissions["gitea"]
@@ -549,12 +549,12 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     if row["workspace"] and permissions["gitea"] and permissions["worker"]
                     else None
                 )
-                notice_id = hal_notices.repository_id(repository, permissions["auto_commit"])
+                notice_id = ai_notices.repository_id(repository, permissions["auto_commit"])
                 completed = [
                     a
                     for a in completed
                     if not (
-                        a["state"] == "pushed" and hal_notices.hidden(c, chat, "approval", a["id"])
+                        a["state"] == "pushed" and ai_notices.hidden(c, chat, "approval", a["id"])
                     )
                 ]
                 deployments = (
@@ -571,7 +571,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                         repository=repository,
                         repository_notice_id=notice_id,
                         repository_dismissed=bool(
-                            notice_id and hal_notices.hidden(c, chat, "repository", notice_id)
+                            notice_id and ai_notices.hidden(c, chat, "repository", notice_id)
                         ),
                         auto_commit=permissions["auto_commit"],
                     ),
@@ -585,14 +585,14 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
     try:
         with closing(db()) as c, c:
             if h.command == "GET":
-                hal_model_routing.cleanup(c)
+                ai_model_routing.cleanup(c)
                 chat = urllib.parse.parse_qs(path.query).get("id", [LOG])[0]
                 send(
                     h,
                     dict(
                         version=VERSION,
                         serverTime=time.time(),
-                        models_used=hal_model_routing.metadata(c, chat),
+                        models_used=ai_model_routing.metadata(c, chat),
                         branch=(
                             dict(branch)
                             if (
@@ -602,22 +602,22 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                             )
                             else None
                         ),
-                        progress=hal_chat_runtime.state(c, chat),
+                        progress=ai_chat_runtime.state(c, chat),
                         chats=[
                             dict(
                                 dict(r),
-                                routing=hal_model_routing.mode(c, r["id"]),
-                                gpu_affinity=hal_model_routing.affinity(c, r["id"]),
-                                permissions=hal_permissions.get(c, r["id"]),
+                                routing=ai_model_routing.mode(c, r["id"]),
+                                gpu_affinity=ai_model_routing.affinity(c, r["id"]),
+                                permissions=ai_permissions.get(c, r["id"]),
                             )
                             for r in c.execute("SELECT * FROM chats ORDER BY rowid DESC")
                         ],
                         messages=[
-                            dict(dict(r), attachments=hal_attachments.for_message(c, r["id"]))
+                            dict(dict(r), attachments=ai_attachments.for_message(c, r["id"]))
                             for r in c.execute(
                                 "SELECT * FROM messages WHERE chat=? ORDER BY seq", (chat,)
                             )
-                            if not hal_notices.hidden(c, chat, "message", r["id"])
+                            if not ai_notices.hidden(c, chat, "message", r["id"])
                         ],
                         turns=[
                             dict(r)
@@ -637,18 +637,18 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
             data = json.loads(h.rfile.read(size))
             op, chat = data["op"], data.get("id", "")
             if op == "dismiss_notice":
-                hal_notices.dismiss(
+                ai_notices.dismiss(
                     c,
                     chat,
                     data.get("kind"),
                     data.get("notice_id"),
                     studio,
-                    hal_permissions.get(c, chat),
+                    ai_permissions.get(c, chat),
                 )
             elif op == "restore_notices":
-                hal_notices.restore(c, chat)
+                ai_notices.restore(c, chat)
             elif op == "upload_attachment":
-                attachment = hal_attachments.upload(
+                attachment = ai_attachments.upload(
                     c, chat, data.get("name", ""), data.get("data", "")
                 )
                 c.commit()
@@ -664,15 +664,15 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                 ):
                     raise ValueError("Draft attachment not found or already sent")
             elif op == "create_workspace":
-                workspace = hal_workspace_actions.create(c, data, studio, add)
+                workspace = ai_workspace_actions.create(c, data, studio, add)
                 c.commit()
                 send(h, {"workspace": workspace, "saved": True, "version": VERSION})
                 return True
             elif op == "delete":
-                hal_chat_control.delete_chat(c, chat, data.get("confirmed"), data.get("name"))
+                ai_chat_control.delete_chat(c, chat, data.get("confirmed"), data.get("name"))
                 c.execute("DELETE FROM tool_failures WHERE chat=?", (chat,))
                 c.execute("DELETE FROM chat_branches WHERE chat=?", (chat,))
-                hal_model_routing.cleanup(c)
+                ai_model_routing.cleanup(c)
             elif op == "reset_failures":
                 if not c.execute("SELECT 1 FROM chats WHERE id=?", (chat,)).fetchone():
                     raise ValueError("Conversation not found")
@@ -687,9 +687,9 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     )
                 c.execute("DELETE FROM tool_failures WHERE chat=?", (chat,))
             elif op == "stop":
-                hal_chat_control.stop_chat(c, chat)
+                ai_chat_control.stop_chat(c, chat)
             elif op == "branch_preview":
-                rows = hal_chat_branches.selected(c, chat, data.get("source_ids"))
+                rows = ai_chat_branches.selected(c, chat, data.get("source_ids"))
                 topic = data.get("topic", "")
                 if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
                     raise ValueError("Name the current topic to summarize")
@@ -704,23 +704,23 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                         "content": "Topic: " + topic + "\n\nSelected historical messages:\n" + text,
                     },
                 ]
-                summary = hal_chat_runtime.stream_chat(
+                summary = ai_chat_runtime.stream_chat(
                     {
-                        "model": hal_model_routing.CODING,
+                        "model": ai_model_routing.CODING,
                         "messages": prompt,
                         "think": False,
                         "options": {"num_predict": 1800},
                     },
                     lambda *args: None,
-                    affinity=hal_model_routing.affinity(c, chat),
+                    affinity=ai_model_routing.affinity(c, chat),
                 )
                 send(h, {"context": summary["content"], "saved": False})
                 return True
             elif op == "branch":
-                parent_gpu = hal_model_routing.affinity(c, chat)
-                chat = hal_chat_branches.create(c, data, add, hal_permissions)
-                hal_model_routing.save_affinity(c, chat, parent_gpu)
-                hal_model_routing.save(c, chat, "auto")
+                parent_gpu = ai_model_routing.affinity(c, chat)
+                chat = ai_chat_branches.create(c, data, add, ai_permissions)
+                ai_model_routing.save_affinity(c, chat, parent_gpu)
+                ai_model_routing.save(c, chat, "auto")
             elif op == "configure_gpu":
                 c.execute("BEGIN IMMEDIATE")
                 if not c.execute("SELECT 1 FROM chats WHERE id=?", (chat,)).fetchone():
@@ -730,7 +730,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     (chat,),
                 ).fetchone():
                     raise ValueError("Wait for the current reply before changing GPU affinity")
-                hal_model_routing.save_affinity(c, chat, data["gpu_affinity"])
+                ai_model_routing.save_affinity(c, chat, data["gpu_affinity"])
             elif op == "configure":
                 c.execute("BEGIN IMMEDIATE")
                 if c.execute(
@@ -740,7 +740,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     raise ValueError(
                         "Wait for the current reply before changing its model or workspace"
                     )
-                installed = {model["name"] for model in hal_chat_runtime.chat_models()}
+                installed = {model["name"] for model in ai_chat_runtime.chat_models()}
                 if data["model"] not in installed:
                     raise ValueError("Choose an installed local model")
                 if (
@@ -749,16 +749,16 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                 ):
                     raise ValueError("Conversation not found")
                 if "routing" in data:
-                    hal_model_routing.save(c, chat, data["routing"])
+                    ai_model_routing.save(c, chat, data["routing"])
                 if text_only(data["model"]):
-                    hal_model_routing.save_affinity(c, chat, "auto")
+                    ai_model_routing.save_affinity(c, chat, "auto")
                 if "workspace" in data:
                     ids = {w["id"] for w in studio("list_workspaces")} | {""}
                     if data["workspace"] not in ids:
                         raise ValueError("Unknown workspace")
                     c.execute("UPDATE chats SET workspace=? WHERE id=?", (data["workspace"], chat))
                 if "permissions" in data:
-                    hal_permissions.save(c, chat, data["permissions"])
+                    ai_permissions.save(c, chat, data["permissions"])
             elif op == "approve_lab_deployment":
                 if c.execute(
                     "SELECT 1 FROM turns WHERE chat=? AND state IN ('queued','running','stopping')",
@@ -773,7 +773,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     {"deployment_id": data["deployment_id"]},
                     current["workspace"],
                     human=True,
-                    permissions=hal_permissions.get(c, chat),
+                    permissions=ai_permissions.get(c, chat),
                 )
                 add(c, chat, "lab deployment result", json.dumps(result))
             elif op in ("checkout", "approve_commit"):
@@ -794,7 +794,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                             branch=data.get("branch", ""),
                         ),
                         human=True,
-                        permissions=hal_permissions.get(c, chat),
+                        permissions=ai_permissions.get(c, chat),
                     )
                     c.execute("UPDATE chats SET workspace=? WHERE id=?", (result["id"], chat))
                     add(c, chat, "workspace", json.dumps(result))
@@ -804,7 +804,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                         for a in studio(
                             "approvals",
                             workspace=current["workspace"],
-                            permissions=hal_permissions.get(c, chat),
+                            permissions=ai_permissions.get(c, chat),
                         )
                     }
                     if data["approval_id"] not in approved:
@@ -814,7 +814,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                         dict(approval_id=data["approval_id"], push=bool(data.get("push"))),
                         current["workspace"],
                         human=True,
-                        permissions=hal_permissions.get(c, chat),
+                        permissions=ai_permissions.get(c, chat),
                     )
                     add(c, chat, "approval result", json.dumps(result))
             elif op == "create":
@@ -833,13 +833,13 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                 )
                 if not name:
                     c.execute("INSERT INTO pending_chat_titles(chat) VALUES(?)", (chat,))
-                hal_permissions.save(
+                ai_permissions.save(
                     c,
                     chat,
-                    hal_permissions.normalize(data.get("permissions"), hal_permissions.DEFAULT),
+                    ai_permissions.normalize(data.get("permissions"), ai_permissions.DEFAULT),
                 )
-                hal_model_routing.save(c, chat, data.get("routing", "auto"))
-                hal_model_routing.save_affinity(
+                ai_model_routing.save(c, chat, data.get("routing", "auto"))
+                ai_model_routing.save_affinity(
                     c, chat, "auto" if text_only(model) else data.get("gpu_affinity", "auto")
                 )
             elif op == "post":
@@ -857,7 +857,7 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                 row = c.execute("SELECT * FROM chats WHERE id=?", (chat,)).fetchone()
                 if not row:
                     raise ValueError("Conversation not found; refresh the chat list")
-                hal_attachments.validate(c, chat, attachment_ids, mid)
+                ai_attachments.validate(c, chat, attachment_ids, mid)
                 prior = c.execute("SELECT chat,body FROM messages WHERE id=?", (mid,)).fetchone()
                 if prior:
                     previous_ids = [
@@ -877,13 +877,13 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
                     if not isinstance(data.get("after"), int) or data["after"] > latest:
                         raise ValueError("Invalid message sequence; refresh this conversation")
                     add(c, chat, "user", body, mid, {"role": "user", "content": body})
-                    hal_attachments.bind(c, attachment_ids, mid)
+                    ai_attachments.bind(c, attachment_ids, mid)
                     pending = c.execute(
                         "SELECT 1 FROM pending_chat_titles WHERE chat=? AND first_message IS NULL",
                         (chat,),
                     ).fetchone()
                     if pending:
-                        title, refine = hal_chat_titles.first_title(body)
+                        title, refine = ai_chat_titles.first_title(body)
                         c.execute("UPDATE chats SET name=? WHERE id=?", (title, chat))
                         if refine:
                             c.execute(
@@ -948,16 +948,16 @@ for(const client of await self.clients.matchAll({type:'window'})) client.navigat
 def reply(c, chat):
     global CURRENT_PERMISSIONS
     chat = dict(chat)
-    CURRENT_PERMISSIONS = hal_permissions.get(c, chat["id"])
+    CURRENT_PERMISSIONS = ai_permissions.get(c, chat["id"])
     coding = bool(chat["workspace"])
     latest = c.execute(
         "SELECT id,body FROM messages WHERE chat=? AND role='user' ORDER BY seq DESC LIMIT 1",
         (chat["id"],),
     ).fetchone()
     latest_text = latest["body"] if latest else ""
-    selection = hal_model_routing.select(
+    selection = ai_model_routing.select(
         latest_text,
-        hal_model_routing.mode(c, chat["id"]),
+        ai_model_routing.mode(c, chat["id"]),
         chat["model"],
         bool(
             latest
@@ -968,17 +968,17 @@ def reply(c, chat):
     )
     manual_model = chat["model"]
     chat["model"] = selection["model"]
-    gpu_affinity = hal_model_routing.affinity(c, chat["id"])
+    gpu_affinity = ai_model_routing.affinity(c, chat["id"])
     answer_started = time.monotonic()
     repo_snapshot = None
 
     def routed_progress(phase, characters=0):
-        hal_chat_runtime.progress(c, TURN_ID, selection["model"] + " · " + phase, characters)
+        ai_chat_runtime.progress(c, TURN_ID, selection["model"] + " · " + phase, characters)
 
     def save_answer(message):
         mid = str(uuid.uuid4())
         add(c, chat["id"], "assistant", message.get("content", ""), mid, record=message)
-        hal_model_routing.record(c, mid, selection, time.monotonic() - answer_started)
+        ai_model_routing.record(c, mid, selection, time.monotonic() - answer_started)
         c.commit()
         first = c.execute(
             "SELECT m.body FROM pending_chat_titles t JOIN messages m ON m.id=t.first_message WHERE t.chat=?",
@@ -989,7 +989,7 @@ def reply(c, chat):
             c.execute("DELETE FROM pending_chat_titles WHERE chat=?", (chat["id"],))
             c.commit()
             try:
-                title_message = hal_chat_runtime.stream_chat(
+                title_message = ai_chat_runtime.stream_chat(
                     {
                         "model": selection["model"],
                         "think": False,
@@ -1006,7 +1006,7 @@ def reply(c, chat):
                     idle_timeout=12,
                     affinity=gpu_affinity,
                 )
-                title = hal_chat_titles.model_title(title_message.get("content", ""))
+                title = ai_chat_titles.model_title(title_message.get("content", ""))
             except (OSError, ValueError, KeyError):
                 title = None
             if title:
@@ -1023,7 +1023,7 @@ def reply(c, chat):
     ):
         selection = dict(
             selection,
-            model=hal_model_routing.CODING,
+            model=ai_model_routing.CODING,
             quick=False,
             reason="Internet lookup requires tools",
         )
@@ -1045,7 +1045,7 @@ def reply(c, chat):
             )
         )
     vision = (
-        hal_attachments.has_vision(chat["model"])
+        ai_attachments.has_vision(chat["model"])
         if c.execute(
             "SELECT 1 FROM attachments WHERE chat=? AND kind='image' AND message IS NOT NULL",
             (chat["id"],),
@@ -1098,7 +1098,7 @@ def reply(c, chat):
             ),
         }
     )
-    messages.append({"role": "system", "content": hal_model_routing.PLAIN_ENGLISH})
+    messages.append({"role": "system", "content": ai_model_routing.PLAIN_ENGLISH})
     messages.append(
         {
             "role": "system",
@@ -1109,7 +1109,7 @@ def reply(c, chat):
         "SELECT seq,id,role,body,record FROM messages WHERE chat=? ORDER BY seq", (chat["id"],)
     ).fetchall()
     last_input_seq = max((row["seq"] for row in initial_rows if row["role"] == "user"), default=0)
-    hal_steering.claim(
+    ai_steering.claim(
         c, chat["id"], [row["id"] for row in initial_rows if row["role"] == "user"], TURN_ID
     )
     c.commit()
@@ -1118,7 +1118,7 @@ def reply(c, chat):
         if record and record.get("role") in ("user", "assistant", "tool"):
             # Only Ollama message fields; never forward arbitrary imported metadata.
             if row["role"] == "user":
-                record = hal_attachments.augment(c, chat["id"], row["id"], record, vision)
+                record = ai_attachments.augment(c, chat["id"], row["id"], record, vision)
             messages.append(
                 {
                     k: record[k]
@@ -1132,7 +1132,7 @@ def reply(c, chat):
 
     def updates():
         nonlocal last_input_seq
-        rows = hal_steering.pull(c, chat["id"], last_input_seq, TURN_ID)
+        rows = ai_steering.pull(c, chat["id"], last_input_seq, TURN_ID)
         records = []
         for row in rows:
             record = (
@@ -1141,13 +1141,13 @@ def reply(c, chat):
                 else {"role": "user", "content": row["body"]}
             )
             vision = (
-                hal_attachments.has_vision(chat["model"])
+                ai_attachments.has_vision(chat["model"])
                 if c.execute(
                     "SELECT 1 FROM attachments WHERE message=? AND kind='image'", (row["id"],)
                 ).fetchone()
                 else False
             )
-            record = hal_attachments.augment(c, chat["id"], row["id"], record, vision)
+            record = ai_attachments.augment(c, chat["id"], row["id"], record, vision)
             records.append({k: record[k] for k in ("role", "content", "images") if k in record})
             last_input_seq = row["seq"]
         if records:
@@ -1185,7 +1185,7 @@ def reply(c, chat):
     while True:
         messages.extend(updates())
         if selection["quick"]:
-            quick_context, _ = hal_chat_runtime.compact(messages, max_chars=14000)
+            quick_context, _ = ai_chat_runtime.compact(messages, max_chars=14000)
             quick_context = [
                 (
                     {
@@ -1203,14 +1203,14 @@ def reply(c, chat):
                 {
                     "role": "system",
                     "content": f"You are {ai_name()}. Answer the user directly, briefly and accurately in one to three short paragraphs. Do not add unrequested advice. "
-                    + hal_model_routing.PLAIN_ENGLISH
+                    + ai_model_routing.PLAIN_ENGLISH
                     + " You have no action tools in this quick pass. Answer ordinary definitions and conceptual questions about programming and Git directly. Programming terminology alone is not a reason to escalate. Return exactly [ESCALATE] only if you are actually unsure, or the user requests executing actions, inspecting unavailable files, editing substantial code, or complex analysis. Never promise or claim actions in this quick pass.",
                 },
-                hal_preferences.system_message(c),
+                ai_preferences.system_message(c),
             ] + quick_context
-            needs_tools = not hal_model_routing.select(latest_text, "auto", manual_model)["quick"]
+            needs_tools = not ai_model_routing.select(latest_text, "auto", manual_model)["quick"]
             try:
-                quick = hal_chat_runtime.stream_chat(
+                quick = ai_chat_runtime.stream_chat(
                     {
                         "model": selection["model"],
                         "messages": quick_context,
@@ -1225,7 +1225,7 @@ def reply(c, chat):
                 followups = updates()
                 if followups:
                     messages.extend(followups)
-                    selection = hal_model_routing.select(
+                    selection = ai_model_routing.select(
                         " ".join(
                             m.get("content", "") for m in followups if m.get("role") == "user"
                         ),
@@ -1234,10 +1234,10 @@ def reply(c, chat):
                     )
                     chat["model"] = selection["model"]
                     continue
-                needs_tools = not hal_model_routing.select(latest_text, "auto", manual_model)[
+                needs_tools = not ai_model_routing.select(latest_text, "auto", manual_model)[
                     "quick"
                 ]
-                if not needs_tools and not hal_model_routing.escalate(quick.get("content", "")):
+                if not needs_tools and not ai_model_routing.escalate(quick.get("content", "")):
                     save_answer(quick)
                     return
                 cause = (
@@ -1251,7 +1251,7 @@ def reply(c, chat):
                 cause = "Quick model unavailable; escalated to the larger model"
             selection = {
                 "model": (
-                    hal_model_routing.CODING if coding or needs_tools else hal_model_routing.DEEP
+                    ai_model_routing.CODING if coding or needs_tools else ai_model_routing.DEEP
                 ),
                 "mode": selection["mode"],
                 "reason": cause,
@@ -1259,13 +1259,13 @@ def reply(c, chat):
             }
             chat["model"] = selection["model"]
             routed_progress("Escalating · " + cause)
-        context, context_info = hal_chat_runtime.compact(messages)
+        context, context_info = ai_chat_runtime.compact(messages)
         facts = repository_facts()
         if facts:
             context.append(facts)
-        context.append(hal_preferences.system_message(c))
+        context.append(ai_preferences.system_message(c))
         context.append(
-            {"role": "system", "content": hal_public_web.instructions(CURRENT_PERMISSIONS)}
+            {"role": "system", "content": ai_public_web.instructions(CURRENT_PERMISSIONS)}
         )
         payload = dict(
             model=chat["model"], messages=context, tools=tools, think=False, keep_alive="30m"
@@ -1295,7 +1295,7 @@ def reply(c, chat):
                     "content": "This is a text-only model. Tools are unavailable. Never claim to perform actions.",
                 }
             ]
-        response = hal_chat_runtime.stream_chat(payload, routed_progress, affinity=gpu_affinity)
+        response = ai_chat_runtime.stream_chat(payload, routed_progress, affinity=gpu_affinity)
         message = (
             {"role": "assistant", "content": response["content"]}
             if model_text_only
@@ -1325,8 +1325,8 @@ def reply(c, chat):
             function = call["function"]
             if function["name"] not in {t["function"]["name"] for t in tools}:
                 raise ValueError("Tool is unavailable in this workspace")
-            current_state = hal_failure_guard.state(repo_snapshot)
-            repeated = hal_failure_guard.blocked(c, chat["id"], function, current_state)
+            current_state = ai_failure_guard.state(repo_snapshot)
+            repeated = ai_failure_guard.blocked(c, chat["id"], function, current_state)
             if repeated:
                 for unexecuted in calls[call_index:]:
                     stopped = dict(
@@ -1367,21 +1367,21 @@ def reply(c, chat):
                 ):
                     result = dict(
                         status=0,
-                        result=hal_preferences.tool(
+                        result=ai_preferences.tool(
                             c, chat["id"], last_input_seq, function["name"], function["arguments"]
                         ),
                     )
                 elif function["name"] == "read_conversation_history":
                     result = dict(
                         status=0,
-                        result=hal_chat_runtime.read_history(
+                        result=ai_chat_runtime.read_history(
                             c, chat["id"], **function["arguments"]
                         ),
                     )
                 elif function["name"] in ("read_attachment", "search_attachment"):
                     result = dict(
                         status=0,
-                        result=hal_attachments.tool(
+                        result=ai_attachments.tool(
                             c, chat["id"], function["name"], function["arguments"]
                         ),
                     )
@@ -1407,16 +1407,16 @@ def reply(c, chat):
                     )
             except Exception as error:
                 result = dict(status=1, error=str(error))
-            hal_failure_guard.remember(c, chat["id"], function, current_state, result)
+            ai_failure_guard.remember(c, chat["id"], function, current_state, result)
             c.commit()
-            if hal_failure_guard.failed(result):
+            if ai_failure_guard.failed(result):
                 messages.append(
                     {
                         "role": "system",
                         "content": "The preceding operation failed. Do not repeat unchanged arguments. Explain the meaning in plain English, inspect current state with a read-only tool, or choose a materially different approach. Pending review is not a failure.",
                     }
                 )
-            if hal_failure_guard.uncertain_commit(function, result):
+            if ai_failure_guard.uncertain_commit(function, result):
                 facts = repository_facts()
                 detail = "The commit request lost its connection, so I stopped instead of submitting it again. A timeout does not tell us whether it completed."
                 if repo_snapshot is not None:
@@ -1452,7 +1452,7 @@ def reply(c, chat):
             android_image = None
             if function["name"] == "android_screenshot" and result.get("status") == 0:
                 image = result["result"].pop("png_base64", None)
-                if image and hal_attachments.has_vision(chat["model"]):
+                if image and ai_attachments.has_vision(chat["model"]):
                     android_image = image
                 else:
                     result["result"][
@@ -1493,14 +1493,14 @@ def worker():
                     import __main__
 
                     __main__.interactive_priority()
-                    hal_chat_control.run_turn(c, turn["id"], add)
+                    ai_chat_control.run_turn(c, turn["id"], add)
                 except Exception as error:
                     add(c, turn["chat"], "error", str(error))
                     c.execute(
                         "UPDATE turns SET state='failed',error=? WHERE id=?",
                         (str(error), turn["id"]),
                     )
-                hal_steering.finish(c, turn["id"])
+                ai_steering.finish(c, turn["id"])
                 c.commit()
         except Exception as error:
             print("HAL conversation worker:", type(error).__name__, str(error), flush=True)

@@ -52,11 +52,11 @@ def interactive_priority():
         pass
 
 
-import hal_shared
-from hal_branding import render as render_ai_name
+import ai_shared
+from ai_branding import render as render_ai_name
 
-hal_shared.setup()
-hal_shared.start_worker()
+ai_shared.setup()
+ai_shared.start_worker()
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -297,7 +297,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError:
             self.send_error(503, "HAL authentication service unavailable")
             return
-        if hal_shared.api(self):
+        if ai_shared.api(self):
             return
         if self.path == "/llama":
             self.send_response(302)

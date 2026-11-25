@@ -1,7 +1,7 @@
 """Conversation deletion and per-turn cancellation. No workspace deletion."""
 
 import json
-import hal_chat_runtime
+import ai_chat_runtime
 import os
 import signal
 import socket
@@ -92,7 +92,7 @@ def cancel_tools(turn):
 
 def run_turn(connection, turn, add, command=None):
     """Separate process allows Stop to close a blocked model HTTP request too."""
-    command = command or [sys.executable, "/usr/local/libexec/hal-chat-turn.py", turn]
+    command = command or [sys.executable, "/usr/local/libexec/ai-chat-turn.py", turn]
     with tempfile.TemporaryFile() as output:
         process = subprocess.Popen(
             command, stdout=output, stderr=subprocess.STDOUT, start_new_session=True
@@ -138,6 +138,6 @@ def run_turn(connection, turn, add, command=None):
                 connection,
                 row["chat"],
                 "error",
-                json.dumps({"summary": hal_chat_runtime.friendly_error(error), "technical": error}),
+                json.dumps({"summary": ai_chat_runtime.friendly_error(error), "technical": error}),
             )
         connection.commit()

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import os, sys, json, time, glob, pathlib, subprocess, datetime, signal, re, socket
-from hal_nvme import temperature_celsius
-from hal_usage_metrics import collect as collect_usage_metrics
-from hal_smart_temperatures import collect as collect_smart_temperatures
+from ai_nvme import temperature_celsius
+from ai_usage_metrics import collect as collect_usage_metrics
+from ai_smart_temperatures import collect as collect_smart_temperatures
 
 P = pathlib.Path
 BASE = P("/var/log/hardware-validation")

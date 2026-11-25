@@ -3,16 +3,16 @@
 import shutil
 import datetime, hashlib, importlib.util, json, os, pwd, re, socket, socketserver, struct, subprocess, threading, time, urllib.request, uuid
 from pathlib import Path
-import hal_bench_tuning as tuning
-from hal_remote_models import lookup, model_card, model_purpose
-from hal_model_catalog import (
+import ai_bench_tuning as tuning
+from ai_remote_models import lookup, model_card, model_purpose
+from ai_model_catalog import (
     LITTLEBIT_MODEL as LITTLEBIT,
     NATIVE_PREFIX,
     installed_models,
     native_models,
 )
 
-spec = importlib.util.spec_from_file_location("worker", "/usr/local/libexec/hal-benchmark-queue.py")
+spec = importlib.util.spec_from_file_location("worker", "/usr/local/libexec/ai-benchmark-queue.py")
 worker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(worker)
 Q = worker.Queue()
@@ -118,7 +118,7 @@ def mutable():
         command = Path(f"/proc/{pid}/cmdline").read_bytes()
     except OSError:
         return False
-    return command.split(b"\0")[1:2] == [b"/usr/local/libexec/hal-benchmark-queue.py"]
+    return command.split(b"\0")[1:2] == [b"/usr/local/libexec/ai-benchmark-queue.py"]
 
 
 def groups():

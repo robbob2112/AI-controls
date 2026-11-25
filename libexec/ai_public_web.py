@@ -1,7 +1,7 @@
 """Read-only public web tools; no cookies, credentials, private destinations or downloads."""
 
 import fnmatch, base64, datetime, html.parser, http.client, ipaddress, socket, ssl, urllib.parse, xml.etree.ElementTree as ET
-import hal_permissions
+import ai_permissions
 
 MAX_BYTES = 3000000
 
@@ -16,7 +16,7 @@ def destination(url, permissions=None):
         or len(url) > 4096
     ):
         raise ValueError("Use a public HTTP/HTTPS URL without credentials")
-    access = hal_permissions.normalize(permissions or {})
+    access = ai_permissions.normalize(permissions or {})
     if access.get("internet_restricted") and not any(
         fnmatch.fnmatchcase(u.hostname.lower(), pattern) for pattern in access["internet_sites"]
     ):
@@ -56,7 +56,7 @@ class Text(html.parser.HTMLParser):
 
 
 def read(url, permissions):
-    hal_permissions.require("fetch_public_page", permissions)
+    ai_permissions.require("fetch_public_page", permissions)
     for redirect in range(6):
         u, port, ip = destination(url, permissions)
         # Connect to the validated address directly; TLS still verifies the original hostname.
@@ -181,7 +181,7 @@ class GoogleResults(html.parser.HTMLParser):
 
 
 def search(query, permissions):
-    hal_permissions.require("search_web", permissions)
+    ai_permissions.require("search_web", permissions)
     if not isinstance(query, str) or not query.strip() or len(query) > 500:
         raise ValueError("Enter a search query up to500characters")
     url = "https://www.google.com/search?q=" + urllib.parse.quote(query) + "&gbv=1&num=6"
@@ -196,9 +196,9 @@ def search(query, permissions):
             results.append(item)
             seen.add(item["url"])
     if not results:
-        import hal_browser_web
+        import ai_browser_web
 
-        rendered = hal_browser_web.render(url, permissions)
+        rendered = ai_browser_web.render(url, permissions)
         if (
             "/sorry/" in rendered["url"]
             or "unusual traffic" in rendered["text"].lower()
@@ -233,7 +233,7 @@ def search(query, permissions):
 
 
 def instructions(permissions):
-    access = hal_permissions.normalize(permissions)
+    access = ai_permissions.normalize(permissions)
     if not access["internet"]:
         return "Internet access is disabled for this conversation. Tell the user to enable Internet in Conversation access for online lookups."
     policy = (

@@ -23,7 +23,7 @@ The hardware IDs, ports, service names and paths reflect the original deployment
 ## How to use
 
 1. Clone this repository on the target Linux host. If you have a local assistant with shell access, paste [the setup prompt](SETUP-PROMPT.md) into it from the clone. The prompt tells it to inspect your existing setup and configure the supported components.
-2. Run `sudo python3 libexec/hal_branding.py` to choose the AI name. It saves the choice to `/etc/hal-controls/assistant-name`. Omit this step to use **Local AI**.
+2. Run `sudo python3 libexec/ai_branding.py` to choose the AI name. It saves the choice to `/etc/hal-controls/assistant-name`. Omit this step to use **Local AI**.
 3. Start with a working Ollama instance and verify its loopback model inventory at `http://127.0.0.1:11434/api/tags`. Inventory your GPUs, drivers, VRAM, and available ports.
 4. Stage the dashboard, gateway, and web assets in the paths expected by the source, or adjust the paths and URLs for your deployment. Configure local authentication, HTTPS, state directory permissions, and the benchmark broker socket before exposing controls. Start the dashboard and read-only monitoring first, then enable AI Chat and Model Control.
 5. Open the status dashboard to check hardware readings. In **Model Control**, search a source, choose a variant, review its specs, and select **Download and register**. Open **AI Chat** and choose an installed model.

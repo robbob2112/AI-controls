@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys, json, subprocess, importlib.util, pathlib
 
-spec = importlib.util.spec_from_file_location("hal", "/usr/local/libexec/hal-hardware.py")
+spec = importlib.util.spec_from_file_location("hal", "/usr/local/libexec/ai-hardware.py")
 hal = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(hal)
 s = hal.sample()

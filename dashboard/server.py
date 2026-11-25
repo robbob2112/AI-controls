@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 sys.path.extend((str(Path(__file__).resolve().parent.parent / "libexec"), "/usr/local/libexec"))
-from hal_branding import render as render_ai_name
+from ai_branding import render as render_ai_name
 import storage_health
 import chart_catalog
 import case_controls

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 """Capability-based GPU thermal governor, minimum duty and tachometer sampler."""
-from hal_cooling_policy import GPU_FULL_C
+from ai_cooling_policy import GPU_FULL_C
 import json, math, os, pathlib, pwd, signal, socket, struct, sys, time
 
-import hal_gpu_hardware as hardware
+import ai_gpu_hardware as hardware
 
 DEVICES = hardware.discover()
 BDFS = list(DEVICES)

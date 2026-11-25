@@ -1,7 +1,7 @@
 """Release resident models from HAL inference services before GPU workloads."""
 
 import time
-from hal_model_catalog import request
+from ai_model_catalog import request
 
 PINNED = {"b65": 11444, "r9700": 11446}
 

@@ -1,10 +1,10 @@
 """Authenticated human workspace creation, with optional chat selection."""
 
-import hal_permissions
+import ai_permissions
 
 
 def create(connection, data, studio, add):
-    permissions = hal_permissions.normalize(data.get("permissions"), hal_permissions.DEFAULT)
+    permissions = ai_permissions.normalize(data.get("permissions"), ai_permissions.DEFAULT)
     source = data.get("source")
     if source == "new" and "auto_commit" not in (data.get("permissions") or {}):
         permissions["auto_commit"] = True
@@ -20,7 +20,7 @@ def create(connection, data, studio, add):
         ).fetchone():
             raise ValueError("Stop or finish the active reply before changing its workspace")
     if source == "new":
-        hal_permissions.require("create_project", permissions)
+        ai_permissions.require("create_project", permissions)
         workspace = studio(
             "create_project",
             {"name": data.get("project_name", ""), "branch": data.get("branch", "")},
@@ -28,7 +28,7 @@ def create(connection, data, studio, add):
             permissions=permissions,
         )
     else:
-        hal_permissions.require("checkout_repository", permissions)
+        ai_permissions.require("checkout_repository", permissions)
         workspace = studio(
             "checkout_repository",
             {
@@ -41,7 +41,7 @@ def create(connection, data, studio, add):
         )
     if chat:
         connection.execute("UPDATE chats SET workspace=? WHERE id=?", (workspace["id"], chat))
-        hal_permissions.save(connection, chat, permissions)
+        ai_permissions.save(connection, chat, permissions)
         add(
             connection,
             chat,

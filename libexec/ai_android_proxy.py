@@ -1,8 +1,8 @@
 """Host-owned Android web controls, behind the existing authenticated gateway."""
 
 import json, pathlib, tempfile, urllib.parse
-import hal_android
-from hal_lab_proxy import reply
+import ai_android
+from ai_lab_proxy import reply
 
 
 def api(h):
@@ -18,11 +18,11 @@ def api(h):
                     typ="text/html; charset=utf-8",
                 )
             elif path.endswith("/status"):
-                reply(h, hal_android.status())
+                reply(h, ai_android.status())
             elif path.endswith("/screen.png"):
                 reply(
                     h,
-                    hal_android.adb(["exec-out", "screencap", "-p"], binary=True),
+                    ai_android.adb(["exec-out", "screencap", "-p"], binary=True),
                     typ="image/png",
                 )
             else:
@@ -41,15 +41,15 @@ def api(h):
                         f.write(chunk)
                         remaining -= len(chunk)
                     f.flush()
-                    reply(h, hal_android.install(f.name))
+                    reply(h, ai_android.install(f.name))
             else:
                 if not 0 < length <= 16000:
                     raise ValueError("Invalid request size")
                 value = json.loads(h.rfile.read(length))
                 if path == "/llama/android/power":
-                    reply(h, hal_android.lifecycle(value["action"]))
+                    reply(h, ai_android.lifecycle(value["action"]))
                 elif path == "/llama/android/input":
-                    reply(h, hal_android.input_event(value["kind"], value["value"]))
+                    reply(h, ai_android.input_event(value["kind"], value["value"]))
                 else:
                     reply(h, {"error": "Unknown Android route"}, 404)
         else:

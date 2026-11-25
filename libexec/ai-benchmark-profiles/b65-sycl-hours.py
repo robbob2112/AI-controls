@@ -15,14 +15,14 @@ import urllib.request
 
 LIB = Path(__file__).parent
 sys.path.insert(0, str(LIB.parent))
-from hal_model_catalog import NATIVE_PREFIX, native_models, native_weight
+from ai_model_catalog import NATIVE_PREFIX, native_models, native_weight
 
 spec = importlib.util.spec_from_file_location("fixed", LIB / "fixed-work-v1.py")
 fixed = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixed)
 PCI = "0000:04:00.0"
 UNIT = fixed.UNIT
-TUNING = fixed.hal_bench_tuning.settings()
+TUNING = fixed.ai_bench_tuning.settings()
 ENGINE = "/scratch/b65-model-testing/llama.cpp/build-sycl/bin/llama-server"
 
 
